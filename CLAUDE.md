@@ -50,3 +50,13 @@
 
 @rules/languages/python.md
 @rules/languages/typescript.md
+
+---
+
+## Frontend Rules (프론트엔드 프로젝트만)
+
+프론트엔드 프로젝트가 아니면 이 섹션을 통째로 삭제한다.
+CSS 사용 시 `templates/` 의 디자인 토큰 템플릿을 먼저 채우고 시작한다 (`rules/styling/css.md` 참조).
+
+@rules/languages/nextjs.md
+@rules/styling/css.md

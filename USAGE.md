@@ -21,12 +21,19 @@ rules/
   languages/
     python.md                   # Python 전용 규칙
     typescript.md               # TypeScript/JavaScript 전용 규칙
+    nextjs.md                   # Next.js (App Router) 전용 규칙
+  styling/
+    css.md                      # CSS / Tailwind 공통 규칙 + 토큰 강제
+templates/
+  design-tokens.css             # vanilla CSS / CSS Modules 디자인 토큰
+  tailwind.theme.ts             # Tailwind 디자인 토큰 (같은 스키마)
 ```
 
 **관계:**
 - `CLAUDE.md` 하단에 `@rules/<file>.md` 형식의 줄이 있다.
 - 이것은 Claude Code 의 import 기능으로, 해당 파일의 내용을 자동으로 읽어온다.
-- 일반 규칙은 `rules/` 직속, 언어별 규칙은 `rules/languages/` 에 있다.
+- 일반 규칙은 `rules/` 직속, 언어/프레임워크는 `rules/languages/`, 스타일링은 `rules/styling/` 에 있다.
+- `templates/` 는 `@import` 대상이 아니다 — 프로젝트 시작 시 실제 파일로 복사해서 값을 채우는 **파일 템플릿**이다.
 
 ---
 
@@ -57,26 +64,35 @@ git init                         # 새 프로젝트의 git 시작
 
 ---
 
-## Step 2. 사용하지 않는 언어 import 제거
+## Step 2. 사용하지 않는 언어 / 프론트엔드 import 제거
 
 `CLAUDE.md` 맨 아래를 확인한다.
 
 ```markdown
 ## Language-Specific Rules
 
-프로젝트에서 사용하는 언어만 남기고 나머지 줄은 삭제한다.
-
 @rules/languages/python.md
 @rules/languages/typescript.md
+
+## Frontend Rules (프론트엔드 프로젝트만)
+
+@rules/languages/nextjs.md
+@rules/styling/css.md
 ```
 
-- **Python 만 쓰는 프로젝트:** `@rules/languages/typescript.md` 줄을 삭제한다.
-- **TypeScript 만 쓰는 프로젝트:** `@rules/languages/python.md` 줄을 삭제한다.
-- **둘 다 쓰는 프로젝트:** 두 줄 모두 유지한다.
+**Language-Specific 섹션**
+- Python 만: `@rules/languages/typescript.md` 삭제
+- TypeScript 만: `@rules/languages/python.md` 삭제
+- 둘 다: 두 줄 유지
 
-삭제하지 않아도 에러는 나지 않지만, 해당 파일을 실제로 쓰지 않는다면 불필요한 규칙이 컨텍스트를 차지한다.
+**Frontend Rules 섹션**
+- Next.js 프로젝트: 두 줄 다 유지
+- 다른 프론트엔드 (Vite React 등): `@rules/languages/nextjs.md` 만 삭제
+- 백엔드·CLI 등 프론트엔드 아님: 이 섹션을 통째로 삭제
 
-> 언어 규칙 파일 자체를 지울 필요는 없다. `@import` 줄만 제거하면 Claude 컨텍스트에서 빠진다.
+삭제하지 않아도 에러는 나지 않지만, 쓰지 않는 규칙은 컨텍스트를 차지한다.
+
+> 규칙 파일 자체를 지울 필요는 없다. `@import` 줄만 제거하면 Claude 컨텍스트에서 빠진다.
 
 ---
 
@@ -159,7 +175,29 @@ docker-compose up --build
 
 ---
 
-## Step 4. 프로젝트 특화 규칙 추가 (선택)
+## Step 4. 프론트엔드 프로젝트: 디자인 토큰 채우기
+
+프론트엔드 프로젝트라면 스타일 작성 전에 반드시 토큰 템플릿을 먼저 채운다.
+
+**Tailwind CSS 사용 시 — `templates/tailwind.theme.ts`:**
+1. 프로젝트 루트에 복사
+2. `colors.primary`, `colors.secondary`, `colors.accent`, `fontFamily.heading`, `fontFamily.body` 의 `<HEX>` / `<...font>` 를 프로젝트 값으로 교체
+3. `tailwind.config.ts` 의 `theme.extend` 에 `themeExtend` 를 병합
+
+**vanilla CSS / CSS Modules — `templates/design-tokens.css`:**
+1. `styles/design-tokens.css` 로 복사
+2. `--color-primary` 계열, `--font-heading`, `--font-body` 의 `<HEX>` / `<...font>` 를 프로젝트 값으로 교체
+3. `app/layout.tsx` (또는 루트 CSS) 에서 import
+
+**절대 바꾸지 말 것 (프로젝트 간 통일):**
+- 토큰 이름 (`primary`, `space-4`, `radius-md`, `shadow-lg` 등)
+- Spacing / font size / radius / shadow / z-index 스케일
+
+자세한 규칙은 `rules/styling/css.md` 참고.
+
+---
+
+## Step 5. 프로젝트 특화 규칙 추가 (선택)
 
 범용 규칙 외에 프로젝트에만 해당하는 규칙이 있다면 두 가지 방법이 있다.
 
@@ -195,7 +233,7 @@ src/
 
 ---
 
-## Step 5. git 에 커밋
+## Step 6. git 에 커밋
 
 `CLAUDE.md`, `rules/`, `.gitignore` 는 git 에 커밋한다. 팀원들도 같은 규칙을 적용받을 수 있도록 공유하는 것이 권장된다.
 
@@ -211,10 +249,11 @@ git commit -m "docs: add Claude Code project rules"
 ## 전체 체크리스트
 
 - [ ] 1. 템플릿 파일(`CLAUDE.md`, `rules/`, `.gitignore`)을 프로젝트 루트에 복사
-- [ ] 2. 사용하지 않는 언어의 `@rules/languages/*.md` 줄 삭제
+- [ ] 2. 사용하지 않는 `@rules/languages/*.md`, `@rules/styling/*.md` 줄 삭제
 - [ ] 3. `CLAUDE.md` 의 `Commands` 섹션을 실제 명령어로 교체
-- [ ] 4. (선택) 프로젝트 특화 규칙 추가 (`CLAUDE.md` 직접 또는 `rules/` 새 파일)
-- [ ] 5. git 에 커밋
+- [ ] 4. (프론트엔드) `templates/tailwind.theme.ts` 또는 `templates/design-tokens.css` 복사 후 토큰 값 채우기
+- [ ] 5. (선택) 프로젝트 특화 규칙 추가 (`CLAUDE.md` 직접 또는 `rules/` 새 파일)
+- [ ] 6. git 에 커밋
 
 ---
 

@@ -38,6 +38,21 @@ Blank line between each group. No wildcard imports (`from x import *`).
 | Private | `_` prefix | `_internal_helper` |
 | Collections | Plural nouns | `results`, `users` |
 
+**Function names must start with a verb.** The verb clarifies intent — the reader knows whether the function reads, mutates, creates, or decides.
+
+| Purpose | Verbs | Example |
+|---------|-------|---------|
+| Read / retrieve | `get_`, `fetch_`, `load_`, `read_`, `find_` | `get_user`, `fetch_orders` |
+| Create | `create_`, `build_`, `make_`, `generate_` | `create_session`, `build_query` |
+| Update / mutate | `update_`, `set_`, `apply_`, `merge_` | `update_profile`, `set_flag` |
+| Delete | `delete_`, `remove_`, `clear_` | `delete_cache`, `remove_item` |
+| Transform | `parse_`, `format_`, `convert_`, `normalize_` | `parse_date`, `format_price` |
+| Validate / check | `validate_`, `check_`, `ensure_`, `verify_` | `validate_input`, `ensure_exists` |
+| Decide (bool return) | `is_`, `has_`, `should_`, `can_` | `is_valid()`, `has_access()` |
+| Handle / process | `handle_`, `process_`, `run_`, `execute_` | `handle_event`, `process_batch` |
+
+Avoid noun-only function names (`user_data()`, `config()`) — rename to `get_user_data()`, `load_config()`.
+
 ---
 
 ## Async

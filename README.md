@@ -9,7 +9,9 @@ Claude Code 프로젝트용 공통 규칙 템플릿.
 |-----------|------|
 | `CLAUDE.md` | 허브. 프로젝트 설명 + Commands + 규칙 `@import` 목록 |
 | `rules/` | 일반 규칙 (주석·설정·Docker·테스트·Git·보안·의존성·동기화·에러 처리) |
-| `rules/languages/` | 언어별 규칙 (Python, TypeScript) |
+| `rules/languages/` | 언어/프레임워크 규칙 (Python, TypeScript, Next.js) |
+| `rules/styling/` | 스타일링 규칙 (CSS, Tailwind) |
+| `templates/` | 프로젝트 시작 시 채우는 템플릿 (디자인 토큰 등) |
 | `USAGE.md` | 상세 사용 가이드 (한국어) |
 | `.gitignore` | Claude 로컬 파일·env·OS·언어별 산출물 제외 |
 

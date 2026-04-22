@@ -58,6 +58,23 @@ Rules for TypeScript/JavaScript projects. Imported by the main CLAUDE.md.
 | Boolean | `is` / `has` / `should` prefix | `isValid`, `hasAccess` |
 | File names | `kebab-case` or `camelCase` (follow project convention) | `user-profile.ts` |
 
+**Function names must start with a verb.** The verb clarifies intent — the reader knows whether the function reads, mutates, creates, or decides.
+
+| Purpose | Verbs | Example |
+|---------|-------|---------|
+| Read / retrieve | `get`, `fetch`, `load`, `read`, `find` | `getUser`, `fetchOrders` |
+| Create | `create`, `build`, `make`, `generate` | `createSession`, `buildQuery` |
+| Update / mutate | `update`, `set`, `apply`, `merge` | `updateProfile`, `setFlag` |
+| Delete | `delete`, `remove`, `clear` | `deleteCache`, `removeItem` |
+| Transform | `parse`, `format`, `convert`, `normalize` | `parseDate`, `formatPrice` |
+| Validate / check | `validate`, `check`, `ensure`, `verify` | `validateInput`, `ensureExists` |
+| Decide (bool return) | `is`, `has`, `should`, `can` | `isValid()`, `hasAccess()` |
+| Handle / process | `handle`, `process`, `run`, `execute` | `handleEvent`, `processBatch` |
+
+Avoid noun-only function names (`userData()`, `config()`) — rename to `getUserData()`, `loadConfig()`.
+
+For React event handlers, `handle` is the caller-side convention and `on` is the prop-side convention: `<Button onClick={handleSubmit} />`.
+
 ---
 
 ## Code Style
