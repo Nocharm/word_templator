@@ -69,4 +69,6 @@ export const api = {
     }),
   deleteTemplate: (id: string) =>
     request<void>(`/templates/${id}`, { method: "DELETE" }),
+  deleteJob: (jobId: string) =>
+    request<void>(`/jobs/${jobId}`, { method: "DELETE" }),
 };

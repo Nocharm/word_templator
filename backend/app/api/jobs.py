@@ -1,6 +1,7 @@
 """Jobs 라우터 — 업로드, outline 조회/저장, 렌더, 다운로드, 히스토리."""
 
 import uuid
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -34,6 +35,7 @@ class JobSummary(BaseModel):
     original_filename: str
     status: str
     created_at: str
+    applied_template_name: str | None = None
 
 
 def _get_user_job(db: Session, user: User, job_id: str) -> Job:
@@ -151,12 +153,39 @@ def get_jobs(
     db: Session = Depends(get_db),
 ) -> list[JobSummary]:
     rows = db.query(Job).filter_by(user_id=user.id).order_by(Job.created_at.desc()).all()
-    return [
-        JobSummary(
-            id=str(r.id),
-            original_filename=r.original_filename,
-            status=r.status,
-            created_at=r.created_at.isoformat(),
+    out: list[JobSummary] = []
+    for r in rows:
+        tname: str | None = None
+        if r.applied_template_id is not None:
+            t = db.query(Template).filter_by(id=r.applied_template_id).one_or_none()
+            tname = t.name if t else None
+        out.append(
+            JobSummary(
+                id=str(r.id),
+                original_filename=r.original_filename,
+                status=r.status,
+                created_at=r.created_at.isoformat(),
+                applied_template_name=tname,
+            )
         )
-        for r in rows
-    ]
+    return out
+
+
+@router.delete("/{job_id}", status_code=204)
+def delete_job(
+    job_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    job = _get_user_job(db, user, job_id)
+    # disk cleanup — best effort, don't fail if files already gone
+    for path_str in (job.source_path, job.result_path):
+        if path_str:
+            p = Path(path_str)
+            if p.exists():
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
+    db.delete(job)
+    db.commit()

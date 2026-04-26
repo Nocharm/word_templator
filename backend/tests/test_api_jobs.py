@@ -75,3 +75,41 @@ def test_jobs_list_returns_user_history(client):
     r = client.get("/jobs")
     assert r.status_code == 200
     assert len(r.json()) == 2
+
+
+def test_delete_job_removes_row_and_files(client, tmp_path):
+    _login(client)
+    with (FIXTURES / "sample_simple.docx").open("rb") as f:
+        up = client.post("/jobs/upload", files={"file": ("sample_simple.docx", f.read())})
+    job_id = up.json()["job_id"]
+    # Render so result file exists
+    tmpls = client.get("/templates").json()
+    builtin = next(t for t in tmpls if t["is_builtin"])
+    client.post(f"/jobs/{job_id}/render", json={"template_id": builtin["id"], "overrides": {}})
+
+    r = client.delete(f"/jobs/{job_id}")
+    assert r.status_code == 204
+
+    # No longer in list
+    listing = client.get("/jobs").json()
+    assert all(j["id"] != job_id for j in listing)
+
+    # Subsequent GET 404
+    g = client.get(f"/jobs/{job_id}/outline")
+    assert g.status_code == 404
+
+
+def test_delete_other_users_job_returns_404(client):
+    # alice uploads
+    client.post("/auth/signup", json={"email": "alice@a.com", "password": "pw1234"})
+    client.post("/auth/login", json={"email": "alice@a.com", "password": "pw1234"})
+    with (FIXTURES / "sample_simple.docx").open("rb") as f:
+        up = client.post("/jobs/upload", files={"file": ("a.docx", f.read())})
+    alice_job = up.json()["job_id"]
+
+    client.post("/auth/logout")
+    client.post("/auth/signup", json={"email": "bob@b.com", "password": "pw1234"})
+    client.post("/auth/login", json={"email": "bob@b.com", "password": "pw1234"})
+
+    r = client.delete(f"/jobs/{alice_job}")
+    assert r.status_code == 404

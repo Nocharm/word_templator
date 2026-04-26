@@ -66,4 +66,5 @@ export interface JobSummary {
   original_filename: string;
   status: string;
   created_at: string;
+  applied_template_name?: string | null;
 }
