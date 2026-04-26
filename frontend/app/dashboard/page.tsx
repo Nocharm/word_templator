@@ -2,7 +2,7 @@ import Link from "next/link";
 import { fetchMe } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { JobRow } from "@/components/job-row";
+import { JobsList } from "@/components/jobs-list";
 import { LogoutButton } from "@/components/logout-button";
 import type { JobSummary } from "@/lib/types";
 
@@ -50,22 +50,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {jobs.length === 0 ? (
-        <div className="mt-12 rounded-token-xl border border-border bg-surface p-12 text-center text-sm text-text-muted">
-          변환 이력이 없습니다.
-          <div className="mt-4">
-            <Link href="/" className="text-primary hover:underline">
-              첫 .docx 업로드 →
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-2">
-          {jobs.map((j) => (
-            <JobRow key={j.id} job={j} />
-          ))}
-        </ul>
-      )}
+      <JobsList initialJobs={jobs} />
     </main>
   );
 }
