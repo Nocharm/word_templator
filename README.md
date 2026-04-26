@@ -39,3 +39,45 @@ git commit -m "docs: add Claude Code project rules"
 - 규칙을 바꿔도 허브는 건드리지 않는다 (`rules/*.md` 만 수정)
 - 규칙을 끄려면 `@import` 한 줄만 지운다
 - 언어별 규칙은 `rules/languages/` 로 분리해 일반 규칙과 시각적으로 구분
+
+## 실행
+
+```bash
+# 1. 환경변수 채우기
+cp .env.example .env
+# JWT_SECRET, POSTGRES_PASSWORD 등을 실제 값으로 채움
+# 빠른 JWT 시크릿: openssl rand -hex 32
+
+# 2. 도커 컴포즈 기동
+docker compose -f infra/docker-compose.yml up -d --build
+
+# 3. 접속
+# http://localhost           — Nginx → Next.js (UI)
+# http://localhost/api/health — FastAPI (백엔드 헬스체크)
+```
+
+## 개발
+
+```bash
+# Backend
+cd backend
+uv pip install -r requirements-dev.txt
+uvicorn app.main:app --reload --port 8000
+
+# Frontend
+cd frontend
+npm install --legacy-peer-deps
+npm run dev   # http://localhost:3000
+```
+
+## 테스트
+
+```bash
+# Backend (로컬 Postgres 필요)
+docker run --rm -d --name pgtest -e POSTGRES_USER=app -e POSTGRES_PASSWORD=change_me -e POSTGRES_DB=word_templator -p 5432:5432 postgres:16
+docker exec pgtest psql -U app -d word_templator -c "CREATE DATABASE test_wt OWNER app;"
+cd backend && DATABASE_URL=postgresql+psycopg://app:change_me@localhost:5432/test_wt TEST_DATABASE_URL=postgresql+psycopg://app:change_me@localhost:5432/test_wt pytest -v
+
+# Frontend
+cd frontend && npm run lint && npm run build
+```
