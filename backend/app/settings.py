@@ -1,5 +1,7 @@
 """Pydantic Settings: .env 로드 + 검증된 단일 출처."""
 
+from functools import lru_cache
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,5 +22,7 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    # pydantic-settings populates required fields from env/dotenv at construction time
     return Settings()  # type: ignore[call-arg]
