@@ -30,7 +30,7 @@ def test_parse_heuristic_headings():
     assert paras[2].level == 2 and paras[2].detected_by == "heuristic"
 
 
-def test_parse_table_emits_placeholder_block():
+def test_parse_table_without_ids_emits_markdown_only():
     outline = parse_docx(
         (FIXTURES / "sample_with_table.docx").read_bytes(), filename="sample_with_table.docx"
     )

@@ -131,8 +131,8 @@ def parse_docx(
                 for blob in blobs:
                     raw_ref = f"image-{image_idx}" if has_disk else None
                     preview_url: str | None = None
-                    if has_disk:
-                        out = image_path(job_id, image_idx, blob.ext)  # type: ignore[arg-type]
+                    if user_id is not None and job_id is not None:
+                        out = image_path(job_id, image_idx, blob.ext)
                         out.write_bytes(blob.data)
                         preview_url = f"/api/jobs/{job_id}/images/{image_idx}"
                     blocks.append(
@@ -167,10 +167,10 @@ def parse_docx(
         if isinstance(item, Table):
             md = table_to_markdown(item)
             raw_ref_t: str | None = None
-            if has_disk:
+            if user_id is not None and job_id is not None:
                 xml = clone_table_xml(item)
                 raw_ref_t = f"table-{table_idx}"
-                raw_ooxml_path(user_id, job_id, raw_ref_t).write_bytes(xml)  # type: ignore[arg-type]
+                raw_ooxml_path(user_id, job_id, raw_ref_t).write_bytes(xml)
             blocks.append(
                 Block(
                     id=_new_id(),
