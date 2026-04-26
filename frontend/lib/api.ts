@@ -49,10 +49,10 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(outline),
     }),
-  render: (jobId: string, templateId: string) =>
+  render: (jobId: string, templateId: string, overrides: Record<string, unknown> = {}) =>
     request<{ status: string }>(`/jobs/${jobId}/render`, {
       method: "POST",
-      body: JSON.stringify({ template_id: templateId, overrides: {} }),
+      body: JSON.stringify({ template_id: templateId, overrides }),
     }),
   downloadUrl: (jobId: string) => `${BASE}/jobs/${jobId}/download`,
   listJobs: () => request<import("./types").JobSummary[]>("/jobs"),

@@ -1,10 +1,11 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { Outline, Template } from "@/lib/types";
+import type { Outline, StyleSpec, Template } from "@/lib/types";
 import { OutlineEditor } from "@/components/outline-editor/OutlineEditor";
+import { StyleSpecForm } from "@/components/template-form/StyleSpecForm";
 
 export default function EditorPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function EditorPage() {
   const [outline, setOutline] = useState<Outline | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTpl, setSelectedTpl] = useState<string>("");
+  const [pendingSpec, setPendingSpec] = useState<StyleSpec | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,10 +24,24 @@ export default function EditorPage() {
         setOutline(o);
         setTemplates(t);
         const builtin = t.find((x) => x.is_builtin);
-        if (builtin) setSelectedTpl(builtin.id);
+        if (builtin) {
+          setSelectedTpl(builtin.id);
+          setPendingSpec(builtin.spec as unknown as StyleSpec);
+        }
       })
       .catch((e) => setError((e as Error).message));
   }, [jobId]);
+
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => t.id === selectedTpl) ?? null,
+    [templates, selectedTpl],
+  );
+
+  function handleSelectTemplate(id: string) {
+    setSelectedTpl(id);
+    const t = templates.find((x) => x.id === id);
+    if (t) setPendingSpec(t.spec as unknown as StyleSpec);
+  }
 
   async function handleSave(next: Outline) {
     setOutline(next);
@@ -37,11 +53,21 @@ export default function EditorPage() {
   }
 
   async function handleRender() {
-    if (!selectedTpl) return;
+    if (!selectedTpl || !pendingSpec || !selectedTemplate) return;
     setBusy(true);
     setError(null);
     try {
-      await api.render(jobId, selectedTpl);
+      // 변경된 spec 전체를 overrides로 보냄. 백엔드는 {...template.spec, ...overrides} 로 병합하므로
+      // 사용자가 폼에서 만진 영역(fonts/paragraph/page) 통째로 덮어쓰는 효과.
+      const overrides: Record<string, unknown> = {};
+      const baseSpec = selectedTemplate.spec as unknown as StyleSpec;
+      // 비교해서 다른 top-level 키만 보내면 알뜰. 단순화 위해 다 보냄.
+      for (const k of Object.keys(pendingSpec) as (keyof StyleSpec)[]) {
+        if (JSON.stringify(pendingSpec[k]) !== JSON.stringify(baseSpec[k])) {
+          overrides[k] = pendingSpec[k];
+        }
+      }
+      await api.render(jobId, selectedTpl, overrides);
       window.location.href = api.downloadUrl(jobId);
     } catch (e) {
       setError((e as Error).message);
@@ -50,7 +76,7 @@ export default function EditorPage() {
     }
   }
 
-  if (error) {
+  if (error && !outline) {
     return (
       <main className="mx-auto max-w-4xl p-6">
         <div className="rounded-token-lg bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
@@ -87,7 +113,7 @@ export default function EditorPage() {
         <select
           className="flex-1 rounded-token border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary"
           value={selectedTpl}
-          onChange={(e) => setSelectedTpl(e.target.value)}
+          onChange={(e) => handleSelectTemplate(e.target.value)}
         >
           {templates.map((t) => (
             <option key={t.id} value={t.id}>
@@ -105,6 +131,21 @@ export default function EditorPage() {
           {busy ? "변환 중..." : "변환 + 다운로드"}
         </button>
       </div>
+
+      {pendingSpec ? (
+        <details className="mt-4 rounded-token-lg border border-border bg-surface-elevated p-4">
+          <summary className="cursor-pointer text-sm font-medium text-text-muted">
+            ⚙️ 스타일 일부 수정 (이번 변환에만 적용)
+          </summary>
+          <div className="mt-4">
+            <StyleSpecForm key={selectedTpl} initial={pendingSpec} onChange={setPendingSpec} />
+          </div>
+        </details>
+      ) : null}
+
+      {error ? (
+        <div className="mt-4 rounded-token bg-danger/10 px-3 py-2 text-sm text-danger">{error}</div>
+      ) : null}
 
       <div className="mt-6">
         <OutlineEditor initial={outline} onChange={handleSave} />
