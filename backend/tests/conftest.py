@@ -43,3 +43,9 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _data_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    yield
