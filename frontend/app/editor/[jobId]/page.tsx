@@ -6,6 +6,22 @@ import { api } from "@/lib/api";
 import type { Outline, StyleSpec, Template } from "@/lib/types";
 import { OutlineEditor } from "@/components/outline-editor/OutlineEditor";
 import { StyleSpecForm } from "@/components/template-form/StyleSpecForm";
+import { LogoutButton } from "@/components/logout-button";
+
+function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" | "error" }) {
+  if (state === "idle") return null;
+  const label = {
+    saving: "저장 중...",
+    saved: "저장됨",
+    error: "저장 실패",
+  }[state];
+  const cls = {
+    saving: "text-text-muted",
+    saved: "text-success",
+    error: "text-danger",
+  }[state];
+  return <span className={`text-xs ${cls}`}>{label}</span>;
+}
 
 export default function EditorPage() {
   const router = useRouter();
@@ -17,6 +33,7 @@ export default function EditorPage() {
   const [pendingSpec, setPendingSpec] = useState<StyleSpec | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     Promise.all([api.getOutline(jobId), api.listTemplates()])
@@ -45,9 +62,13 @@ export default function EditorPage() {
 
   async function handleSave(next: Outline) {
     setOutline(next);
+    setSaveState("saving");
     try {
       await api.putOutline(jobId, next);
+      setSaveState("saved");
+      setTimeout(() => setSaveState((s) => (s === "saved" ? "idle" : s)), 1500);
     } catch (e) {
+      setSaveState("error");
       setError((e as Error).message);
     }
   }
@@ -99,13 +120,17 @@ export default function EditorPage() {
             으로 문단 레벨 조정 · ⚠️는 휴리스틱 추정
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard")}
-          className="rounded-token border border-border bg-surface-elevated px-4 py-2 text-sm hover:bg-surface"
-        >
-          히스토리
-        </button>
+        <div className="flex items-center gap-2">
+          <SaveIndicator state={saveState} />
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="rounded-token border border-border bg-surface-elevated px-4 py-2 text-sm hover:bg-surface"
+          >
+            히스토리
+          </button>
+          <LogoutButton />
+        </div>
       </header>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-token-lg border border-border bg-surface-elevated p-4 shadow-token-sm">

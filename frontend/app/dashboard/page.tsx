@@ -3,6 +3,7 @@ import { fetchMe } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { JobRow } from "@/components/job-row";
+import { LogoutButton } from "@/components/logout-button";
 import type { JobSummary } from "@/lib/types";
 
 // 서버 컴포넌트 → 컨테이너 내부에서 backend로 직접 fetch
@@ -45,6 +46,7 @@ export default async function DashboardPage() {
           >
             새 변환
           </Link>
+          <LogoutButton />
         </div>
       </header>
 
