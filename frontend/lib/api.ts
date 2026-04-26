@@ -57,4 +57,16 @@ export const api = {
   downloadUrl: (jobId: string) => `${BASE}/jobs/${jobId}/download`,
   listJobs: () => request<import("./types").JobSummary[]>("/jobs"),
   listTemplates: () => request<import("./types").Template[]>("/templates"),
+  createTemplate: (name: string, spec: Record<string, unknown>) =>
+    request<import("./types").Template>("/templates", {
+      method: "POST",
+      body: JSON.stringify({ name, spec }),
+    }),
+  updateTemplate: (id: string, body: { name?: string; spec?: Record<string, unknown> }) =>
+    request<import("./types").Template>(`/templates/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteTemplate: (id: string) =>
+    request<void>(`/templates/${id}`, { method: "DELETE" }),
 };

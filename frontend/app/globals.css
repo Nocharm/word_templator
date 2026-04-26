@@ -24,3 +24,9 @@
     color: #FFFFFF;
   }
 }
+
+@layer components {
+  .form-input {
+    @apply rounded-token border border-border bg-bg px-3 py-2 text-sm outline-none transition focus:border-primary;
+  }
+}
