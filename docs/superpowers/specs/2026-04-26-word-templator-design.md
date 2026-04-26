@@ -544,3 +544,24 @@ docker compose -f infra/docker-compose.yml up -d
 - LLM 기반 의미 정리 — 도입 시 별도 의사결정 필요
 - PDF 출력 — 현재 미지원, 요청 누적 시 LibreOffice headless 컨테이너 추가 검토
 - 다중 파일 병합(B) — Phase 5 옵션, 헤딩 충돌 정책은 그때 다시 논의
+
+---
+
+## Phase 1 완료 검증 — 2026-04-26
+
+- 백엔드 테스트: 37/37 PASS
+- 프론트 빌드: 성공 (0 errors, 2 warnings — config 파일 스타일 경고)
+- 통합 round-trip (docker-compose 4 서비스):
+  - GET /api/health: ✅
+  - 회원가입/로그인/me: ✅
+  - 업로드 → outline (4 blocks) → 렌더 → 다운로드: ✅ (결과 파일 크기: 36K bytes, Microsoft OOXML)
+  - 프론트 랜딩 (`/`): ✅
+- 인프라 수정 사항 (검증 중 발견):
+  - `infra/docker-compose.yml` — `db` 서비스에 `env_file: ../.env` 추가 (compose 변수 치환용 `.env`가 infra/ 디렉터리 기준이라 미동작)
+  - `infra/.env` 심볼릭 링크 추가 (`../.env` 가리킴) — `docker compose up` 시 `--env-file` 없이 실행 가능
+  - `backend/Dockerfile` — `gosu` 설치 및 `docker-entrypoint.sh` 추가 (Docker volume이 root 소유로 마운트되어 `app` 유저가 `/data/docs` 쓰기 불가 → 엔트리포인트에서 chown 후 gosu로 권한 강등)
+- 알려진 한계 (Phase 2~5에서 해결할 항목):
+  - 표/이미지/필드는 placeholder만 출력
+  - 빌트인 템플릿 1개 (`기본 보고서`)만 시드, 사용자 커스텀 폼 미구현
+  - 상대 참조 (TOC/REF/PAGEREF) 미지원
+  - 다중 파일 병합 미구현

@@ -21,7 +21,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends libxml2 libxslt1.1
+    apt-get update && apt-get install -y --no-install-recommends libxml2 libxslt1.1 gosu
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
@@ -31,6 +31,10 @@ WORKDIR /app
 COPY --chown=app:app app ./app
 COPY --chown=app:app alembic.ini ./
 
-USER app
+# Entrypoint: fix /data ownership (volume is root-owned on first start), then drop to app
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 8000
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
