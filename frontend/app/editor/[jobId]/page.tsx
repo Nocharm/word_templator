@@ -89,7 +89,10 @@ export default function EditorPage() {
         }
       }
       await api.render(jobId, selectedTpl, overrides);
-      window.location.href = api.downloadUrl(jobId);
+      // preview 페이지가 동일한 spec 으로 diff 계산하도록 sessionStorage 에 전달
+      sessionStorage.setItem(`preview:${jobId}:template_id`, selectedTpl);
+      sessionStorage.setItem(`preview:${jobId}:overrides`, JSON.stringify(overrides));
+      router.push(`/editor/${jobId}/preview`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -153,7 +156,7 @@ export default function EditorPage() {
           disabled={busy || !selectedTpl}
           className="rounded-token bg-primary px-5 py-2 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
         >
-          {busy ? "변환 중..." : "변환 + 다운로드"}
+          {busy ? "변환 중..." : "변환 + 검토 →"}
         </button>
       </div>
 

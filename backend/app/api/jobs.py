@@ -15,6 +15,7 @@ from app.db.models import Job, Template, User
 from app.domain.outline import Outline
 from app.domain.style_spec import StyleSpec
 from app.parser.parse_docx import parse_docx
+from app.renderer.inject_numbering import renumber
 from app.renderer.render_docx import render_docx
 from app.storage.files import image_dir, job_dir, result_path, source_path
 
@@ -75,7 +76,10 @@ async def post_upload(
 
     outline = parse_docx(content, filename=file.filename, user_id=user.id, job_id=job.id)
     outline = outline.model_copy(update={"job_id": str(job.id)})
-    job.outline_json = outline.model_dump()
+    outline_dict = outline.model_dump()
+    job.outline_json = outline_dict
+    # preview diff 의 좌측("before") — 업로드 시 1회 기록 후 불변
+    job.original_outline_json = outline_dict
 
     db.commit()
     db.refresh(job)
@@ -130,6 +134,49 @@ def post_render(
     job.status = "rendered"
     db.commit()
     return {"status": "ok"}
+
+
+class PreviewRequest(BaseModel):
+    template_id: str
+    overrides: dict[str, Any] = {}
+
+
+@router.post("/{job_id}/preview")
+def post_preview(
+    job_id: str,
+    body: PreviewRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """렌더 전에 좌(원본) / 우(변환 후) outline 을 반환해 사용자가 검토할 수 있게 한다.
+
+    좌측: job.original_outline_json (업로드 시 스냅샷, 비어 있으면 현재 outline 으로 폴백)
+    우측: 현재 outline 에 spec 의 numbering 을 적용한 결과 (헤딩 prefix 부여)
+    """
+    job = _get_user_job(db, user, job_id)
+    tmpl = db.query(Template).filter_by(id=uuid.UUID(body.template_id)).one_or_none()
+    if tmpl is None:
+        raise HTTPException(status_code=404, detail="template not found")
+    spec_dict = {**tmpl.spec, **body.overrides}
+    spec = StyleSpec.model_validate(spec_dict)
+
+    current = Outline.model_validate(job.outline_json)
+    numbered_blocks = renumber(current.blocks, spec)
+    after = current.model_copy(update={"blocks": [b.model_dump() for b in numbered_blocks]})
+
+    before_dict = job.original_outline_json or job.outline_json
+
+    return {
+        "before": before_dict,
+        "after": after.model_dump(),
+        "applied_template_name": tmpl.name,
+        "applied_font_summary": {
+            "body": spec.fonts.body.model_dump(),
+            "h1": spec.fonts.heading.h1.model_dump(),
+            "h2": spec.fonts.heading.h2.model_dump(),
+            "h3": spec.fonts.heading.h3.model_dump(),
+        },
+    }
 
 
 @router.get("/{job_id}/download")

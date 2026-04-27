@@ -54,6 +54,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ template_id: templateId, overrides }),
     }),
+  preview: (jobId: string, templateId: string, overrides: Record<string, unknown> = {}) =>
+    request<import("./types").PreviewResponse>(`/jobs/${jobId}/preview`, {
+      method: "POST",
+      body: JSON.stringify({ template_id: templateId, overrides }),
+    }),
   downloadUrl: (jobId: string) => `${BASE}/jobs/${jobId}/download`,
   listJobs: () => request<import("./types").JobSummary[]>("/jobs"),
   listTemplates: () => request<import("./types").Template[]>("/templates"),

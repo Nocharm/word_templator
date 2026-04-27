@@ -69,3 +69,15 @@ export interface JobSummary {
   created_at: string;
   applied_template_name?: string | null;
 }
+
+export interface PreviewResponse {
+  before: Outline;
+  after: Outline;
+  applied_template_name: string;
+  applied_font_summary: {
+    body: FontDef;
+    h1: FontDef;
+    h2: FontDef;
+    h3: FontDef;
+  };
+}
