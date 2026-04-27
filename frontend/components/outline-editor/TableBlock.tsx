@@ -2,6 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useT } from "@/components/settings-provider";
 import type { Block } from "@/lib/types";
 
 const TABLE_CLASSES = [
@@ -18,16 +19,17 @@ const TABLE_CLASSES = [
 ].join(" ");
 
 export function TableBlock({ block }: { block: Block }) {
+  const t = useT();
   const hasMarkdown = !!block.markdown && block.markdown.trim().length > 0;
 
   return (
     <div className="rounded-token-lg border border-border bg-surface-elevated p-3 shadow-token-sm">
       <div className="mb-2 flex items-center gap-2 text-xs">
-        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">표</span>
+        <span className="rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary">{t("table.title")}</span>
         {block.caption ? (
           <span className="font-medium text-text">{block.caption}</span>
         ) : (
-          <span className="italic text-text-muted">캡션 없음</span>
+          <span className="italic text-text-muted">{t("table.noCaption")}</span>
         )}
       </div>
 
@@ -37,13 +39,13 @@ export function TableBlock({ block }: { block: Block }) {
         </div>
       ) : (
         <div className="rounded-token border border-dashed border-border bg-surface px-3 py-4 text-center text-xs text-text-muted">
-          표 원본만 보존됨 — 미리보기 없음 (다운로드 시에는 정상 포함됨)
+          {t("table.noPreview")}
         </div>
       )}
 
       {block.raw_ref ? (
         <div className="mt-2 text-[11px] text-text-muted/70">
-          원본 OOXML 보존: <code className="rounded bg-surface px-1 py-0.5 font-mono">{block.raw_ref}</code>
+          {t("table.rawOoxml")} <code className="rounded bg-surface px-1 py-0.5 font-mono">{block.raw_ref}</code>
         </div>
       ) : null}
     </div>

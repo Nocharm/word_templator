@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useMemo, useRef, useState } from "react";
+import { useT } from "@/components/settings-provider";
 import type { Block, Outline } from "@/lib/types";
 import { ParagraphBlock } from "./ParagraphBlock";
 import { TableBlock } from "./TableBlock";
@@ -32,6 +33,7 @@ function computeHeadingNumbers(blocks: Block[]): Map<string, string> {
 }
 
 export function OutlineEditor({ initial, onChange }: Props) {
+  const t = useT();
   const [outline, setOutline] = useState(initial);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const lastClickedRef = useRef<string | null>(null);
@@ -156,11 +158,11 @@ export function OutlineEditor({ initial, onChange }: Props) {
         <div className="flex items-center gap-2 rounded-token border border-border/60 bg-surface px-3 py-1.5 text-xs text-text-muted">
           <span>📎</span>
           <span>
-            필드/북마크 <span className="font-medium text-text">{preservedTotal}개</span> 보존됨
+            {t("outline.preserved", { n: preservedTotal })}
             {reviewable > 0 ? (
               <>
                 {" · "}
-                <span className="font-medium text-warning">{reviewable}개 검토 필요</span>
+                <span className="font-medium text-warning">{t("outline.needReview", { n: reviewable })}</span>
               </>
             ) : null}
           </span>
@@ -171,15 +173,15 @@ export function OutlineEditor({ initial, onChange }: Props) {
         <span>
           {count > 0 ? (
             <>
-              <span className="font-medium text-primary">{count}개 선택됨</span>
+              <span className="font-medium text-primary">{t("common.selectedCount", { n: count })}</span>
               <span className="mx-2">·</span>
               <kbd className="rounded bg-surface px-1.5 py-0.5">Tab</kbd>
               <span className="mx-1">/</span>
               <kbd className="rounded bg-surface px-1.5 py-0.5">Shift+Tab</kbd>
-              레벨 변경
+              {t("outline.selectedKbd")}
             </>
           ) : (
-            <>클릭으로 단일 선택 · Shift+클릭 범위 · ⌘/Ctrl+클릭 토글</>
+            <>{t("outline.helpHint")}</>
           )}
         </span>
         {count > 0 ? (
@@ -188,7 +190,7 @@ export function OutlineEditor({ initial, onChange }: Props) {
             onClick={() => setSelected(new Set())}
             className="rounded-token border border-border px-2 py-0.5 text-xs hover:bg-surface"
           >
-            선택 해제
+            {t("outline.clearSelection")}
           </button>
         ) : null}
       </div>

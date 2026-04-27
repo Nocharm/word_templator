@@ -4,6 +4,8 @@ import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useT } from "@/components/settings-provider";
+import type { TFunction } from "@/lib/i18n";
 import type { BatchRenderItem, BatchUploadItem, Template } from "@/lib/types";
 
 type Phase = "idle" | "uploading" | "uploaded" | "rendering" | "ready" | "error";
@@ -25,16 +27,17 @@ function statusIcon(row: FileRow): string {
   return "⏳";
 }
 
-function statusLabel(row: FileRow): string {
-  if (row.render_status === "rendered") return "변환 완료";
-  if (row.render_status === "failed") return `렌더 실패: ${row.render_error ?? ""}`;
-  if (row.upload_status === "failed") return `업로드 실패: ${row.upload_error ?? ""}`;
-  if (row.upload_status === "parsed") return "업로드 완료";
-  return "대기 중";
+function statusLabel(row: FileRow, t: TFunction): string {
+  if (row.render_status === "rendered") return t("batch.statusConverted");
+  if (row.render_status === "failed") return t("batch.statusRenderFailed", { err: row.render_error ?? "" });
+  if (row.upload_status === "failed") return t("batch.statusUploadFailed", { err: row.upload_error ?? "" });
+  if (row.upload_status === "parsed") return t("batch.statusUploaded");
+  return t("batch.statusPending");
 }
 
 export default function BatchPage() {
   const router = useRouter();
+  const t = useT();
   const [phase, setPhase] = useState<Phase>("idle");
   const [rows, setRows] = useState<FileRow[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -56,7 +59,7 @@ export default function BatchPage() {
     if (!files || files.length === 0) return;
     const arr = Array.from(files).filter((f) => f.name.toLowerCase().endsWith(".docx"));
     if (arr.length === 0) {
-      setError(".docx 파일만 선택해주세요");
+      setError(t("batch.errOnlyDocx"));
       return;
     }
     setRows(arr.map((f) => ({ file: f })));
@@ -90,7 +93,7 @@ export default function BatchPage() {
         .filter((r) => r.upload_status === "parsed" && r.job_id)
         .map((r) => r.job_id!);
       if (parsedIds.length === 0) {
-        setError("파싱 성공한 파일이 없습니다.");
+        setError(t("batch.errNoneParsed"));
         setPhase("error");
         return;
       }
@@ -136,23 +139,21 @@ export default function BatchPage() {
     <main className="mx-auto max-w-4xl p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">다중 파일 일괄 변환</h1>
-          <p className="mt-1 text-sm text-text-muted">
-            여러 .docx 를 한 템플릿으로 동시에 변환합니다. 백엔드는 병렬 처리.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("batch.title")}</h1>
+          <p className="mt-1 text-sm text-text-muted">{t("batch.subtitle")}</p>
         </div>
         <button
           type="button"
           onClick={() => router.push("/")}
           className="rounded-token border border-border bg-surface-elevated px-3 py-1.5 text-sm hover:bg-surface"
         >
-          ← 단일 파일
+          {t("batch.singleFile")}
         </button>
       </header>
 
       <div className="mt-6 rounded-token-lg border border-border bg-surface-elevated p-6 shadow-token-sm">
         <label className="block">
-          <span className="text-sm font-medium text-text">.docx 파일 선택 (최대 50개)</span>
+          <span className="text-sm font-medium text-text">{t("batch.selectFiles")}</span>
           <input
             type="file"
             accept=".docx"
@@ -164,17 +165,17 @@ export default function BatchPage() {
         </label>
 
         <div className="mt-4 flex items-center gap-2">
-          <label className="text-sm text-text-muted">템플릿</label>
+          <label className="text-sm text-text-muted">{t("common.template")}</label>
           <select
             disabled={busy}
             className="flex-1 rounded-token border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary"
             value={tplId}
             onChange={(e) => setTplId(e.target.value)}
           >
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-                {t.is_builtin ? " · 빌트인" : ""}
+            {templates.map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>
+                {tpl.name}
+                {tpl.is_builtin ? t("common.templateBuiltinSuffix") : ""}
               </option>
             ))}
           </select>
@@ -185,10 +186,10 @@ export default function BatchPage() {
             className="rounded-token bg-primary px-5 py-2 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
           >
             {phase === "uploading"
-              ? "업로드 중..."
+              ? t("batch.uploading")
               : phase === "rendering"
-                ? "변환 중..."
-                : `전체 변환 (${rows.length})`}
+                ? t("batch.converting")
+                : t("batch.convertAll", { n: rows.length })}
           </button>
         </div>
 
@@ -201,15 +202,15 @@ export default function BatchPage() {
         <div className="mt-4 overflow-hidden rounded-token-lg border border-border bg-surface-elevated">
           <div className="flex items-center justify-between border-b border-border bg-surface px-4 py-2 text-xs text-text-muted">
             <span>
-              총 <span className="font-medium text-text">{counts.total}</span> 파일
+              {t("batch.totalFiles", { n: counts.total })}
               {phase === "ready" || counts.ok > 0 || counts.fail > 0 ? (
                 <>
                   {" · "}
-                  <span className="text-success font-medium">완료 {counts.ok}</span>
+                  <span className="text-success font-medium">{t("batch.done", { n: counts.ok })}</span>
                   {counts.fail > 0 ? (
                     <>
                       {" · "}
-                      <span className="text-danger font-medium">실패 {counts.fail}</span>
+                      <span className="text-danger font-medium">{t("batch.failed", { n: counts.fail })}</span>
                     </>
                   ) : null}
                 </>
@@ -220,7 +221,7 @@ export default function BatchPage() {
                 href={api.batchDownloadUrl(renderedIds)}
                 className="rounded-token bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary-hover"
               >
-                ↓ 전체 다운로드 ({renderedIds.length}개 zip)
+                {t("batch.downloadAll", { n: renderedIds.length })}
               </a>
             ) : null}
           </div>
@@ -239,7 +240,7 @@ export default function BatchPage() {
               >
                 <span className="w-5 text-center">{statusIcon(r)}</span>
                 <span className="flex-1 truncate font-medium">{r.file.name}</span>
-                <span className="text-xs text-text-muted">{statusLabel(r)}</span>
+                <span className="text-xs text-text-muted">{statusLabel(r, t)}</span>
               </li>
             ))}
           </ul>

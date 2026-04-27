@@ -3,8 +3,8 @@ import { fetchMe } from "@/lib/auth";
 import { SettingsClient } from "./settings-client";
 
 export const metadata = {
-  title: "설정 · Word Templator",
-  description: "계정과 화면 환경설정을 변경합니다.",
+  title: "Settings · Word Templator",
+  description: "Manage account and display preferences.",
 };
 
 export default async function SettingsPage() {

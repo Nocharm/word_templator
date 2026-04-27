@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useT } from "@/components/settings-provider";
 
 export function UploadBox() {
   const router = useRouter();
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +53,9 @@ export function UploadBox() {
       />
       <div className="text-5xl">📄</div>
       <p className="mt-4 text-base font-medium">
-        {busy ? "업로드 중..." : "클릭해서 .docx 파일 선택"}
+        {busy ? t("upload.uploading") : t("upload.click")}
       </p>
-      <p className="mt-1 text-sm text-text-muted">최대 50MB</p>
+      <p className="mt-1 text-sm text-text-muted">{t("upload.maxSize")}</p>
       {error ? (
         <p className="mt-4 rounded-token bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
       ) : null}

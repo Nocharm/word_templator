@@ -1,4 +1,7 @@
-// 사용자 UI 설정 — 테마/폰트 스케일. localStorage 에 저장하고 <html> 의 data-* 로 노출.
+// 사용자 UI 설정 — 테마/폰트 스케일/언어. localStorage 에 저장하고 <html> 의 data-* 로 노출.
+// 언어는 cookie 에도 동기화 — 서버 컴포넌트가 SSR 시 사용한다.
+
+import { isLanguage, LANGUAGE_COOKIE, type Language } from "./i18n";
 
 export type Theme = "light" | "dark" | "system";
 export type FontScale = "sm" | "md" | "lg";
@@ -6,9 +9,14 @@ export type FontScale = "sm" | "md" | "lg";
 export interface Settings {
   theme: Theme;
   fontScale: FontScale;
+  language: Language;
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: "system", fontScale: "md" };
+export const DEFAULT_SETTINGS: Settings = {
+  theme: "system",
+  fontScale: "md",
+  language: "en",
+};
 export const STORAGE_KEY = "wt-settings";
 
 export function isTheme(v: unknown): v is Theme {
@@ -29,6 +37,7 @@ export function readSettings(): Settings {
     return {
       theme: isTheme(parsed.theme) ? parsed.theme : DEFAULT_SETTINGS.theme,
       fontScale: isFontScale(parsed.fontScale) ? parsed.fontScale : DEFAULT_SETTINGS.fontScale,
+      language: isLanguage(parsed.language) ? parsed.language : DEFAULT_SETTINGS.language,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -44,7 +53,13 @@ export function writeSettings(s: Settings): void {
   }
 }
 
-// <html> 에 data-theme, data-theme-resolved, data-font-scale 적용.
+// 1년 만료 쿠키. 서버 컴포넌트가 next/headers cookies() 로 읽는다.
+function writeLanguageCookie(lang: Language): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${LANGUAGE_COOKIE}=${lang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
+// <html> 에 data-theme, data-theme-resolved, data-font-scale, data-lang 적용.
 // "system" 일 때만 OS 다크모드를 resolved 로 기록 → CSS 가 이걸로 분기.
 export function applySettings(s: Settings): void {
   if (typeof document === "undefined") return;
@@ -59,4 +74,7 @@ export function applySettings(s: Settings): void {
     delete html.dataset.themeResolved;
   }
   html.dataset.fontScale = s.fontScale;
+  html.dataset.lang = s.language;
+  html.lang = s.language;
+  writeLanguageCookie(s.language);
 }

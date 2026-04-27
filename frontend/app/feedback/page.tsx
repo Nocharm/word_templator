@@ -3,8 +3,8 @@ import { fetchMe } from "@/lib/auth";
 import { FeedbackClient } from "./feedback-client";
 
 export const metadata = {
-  title: "피드백 · Word Templator",
-  description: "버그 신고 / 기능 요청 / 의견을 남겨주세요.",
+  title: "Feedback · Word Templator",
+  description: "Report bugs, request features, or share thoughts.",
 };
 
 export default async function FeedbackPage() {

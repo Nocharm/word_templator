@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/settings-provider";
 import type { Block } from "@/lib/types";
 
 export function ImageBlock({ block }: { block: Block }) {
+  const t = useT();
   const [hover, setHover] = useState(false);
   const [errored, setErrored] = useState(false);
   const url = block.preview_url ?? null;
@@ -17,16 +19,16 @@ export function ImageBlock({ block }: { block: Block }) {
       <div className="flex items-center justify-between gap-2 text-sm">
         <div className="flex items-center gap-2">
           <span className="rounded bg-surface-elevated px-1.5 py-0.5 text-xs text-text-muted">
-            🖼 이미지
+            {t("image.title")}
           </span>
           {block.caption ? (
             <span className="italic text-text-muted">{block.caption}</span>
           ) : (
-            <span className="italic text-text-muted">캡션 없음</span>
+            <span className="italic text-text-muted">{t("image.noCaption")}</span>
           )}
         </div>
         {url && !errored ? (
-          <span className="text-[11px] text-text-muted">호버하면 미리보기</span>
+          <span className="text-[11px] text-text-muted">{t("image.hover")}</span>
         ) : null}
       </div>
 
@@ -35,7 +37,7 @@ export function ImageBlock({ block }: { block: Block }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={url}
-            alt={block.caption ?? "이미지 미리보기"}
+            alt={block.caption ?? t("image.previewAlt")}
             onError={() => setErrored(true)}
             className="block max-h-64 w-auto"
           />
@@ -44,7 +46,7 @@ export function ImageBlock({ block }: { block: Block }) {
 
       {block.raw_ref ? (
         <div className="mt-1 text-[11px] text-text-muted/70">
-          원본 보존: <code>{block.raw_ref}</code>
+          {t("image.raw")} <code>{block.raw_ref}</code>
         </div>
       ) : null}
     </div>

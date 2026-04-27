@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useT } from "@/components/settings-provider";
 import type { StyleSpec, Template } from "@/lib/types";
 import { StyleSpecForm } from "@/components/template-form/StyleSpecForm";
 
@@ -11,6 +12,7 @@ type EditState =
   | { mode: "edit"; id: string; name: string; spec: StyleSpec };
 
 export default function TemplatesPage() {
+  const t = useT();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [editing, setEditing] = useState<EditState>({ mode: "idle" });
   const [error, setError] = useState<string | null>(null);
@@ -29,21 +31,25 @@ export default function TemplatesPage() {
     reload();
   }, []);
 
-  function handleClone(t: Template) {
-    setEditing({ mode: "create", baseSpec: t.spec as unknown as StyleSpec, name: `${t.name} 복제` });
+  function handleClone(tpl: Template) {
+    setEditing({
+      mode: "create",
+      baseSpec: tpl.spec as unknown as StyleSpec,
+      name: `${tpl.name} ${t("templates.copySuffix")}`,
+    });
   }
 
-  function handleEdit(t: Template) {
-    setEditing({ mode: "edit", id: t.id, name: t.name, spec: t.spec as unknown as StyleSpec });
+  function handleEdit(tpl: Template) {
+    setEditing({ mode: "edit", id: tpl.id, name: tpl.name, spec: tpl.spec as unknown as StyleSpec });
   }
 
-  async function handleDeleteOne(t: Template) {
-    if (!confirm(`"${t.name}" 삭제하시겠습니까?`)) return;
+  async function handleDeleteOne(tpl: Template) {
+    if (!confirm(t("jobsList.singleDeleteConfirm", { name: tpl.name }))) return;
     try {
-      await api.deleteTemplate(t.id);
+      await api.deleteTemplate(tpl.id);
       setSelected((prev) => {
         const next = new Set(prev);
-        next.delete(t.id);
+        next.delete(tpl.id);
         return next;
       });
       await reload();
@@ -78,7 +84,7 @@ export default function TemplatesPage() {
   }
 
   function toggleAllCustom() {
-    const customIds = templates.filter((t) => !t.is_builtin).map((t) => t.id);
+    const customIds = templates.filter((tpl) => !tpl.is_builtin).map((tpl) => tpl.id);
     if (selected.size === customIds.length && customIds.length > 0) {
       setSelected(new Set());
     } else {
@@ -88,7 +94,7 @@ export default function TemplatesPage() {
 
   async function handleBulkDelete() {
     if (selected.size === 0) return;
-    if (!confirm(`선택한 ${selected.size}개 템플릿을 삭제하시겠습니까?`)) return;
+    if (!confirm(t("templates.bulkDeleteConfirm", { n: selected.size }))) return;
     setBusy(true);
     try {
       const ids = Array.from(selected);
@@ -102,16 +108,16 @@ export default function TemplatesPage() {
     }
   }
 
-  const builtins = templates.filter((t) => t.is_builtin);
-  const customs = templates.filter((t) => !t.is_builtin);
+  const builtins = templates.filter((tpl) => tpl.is_builtin);
+  const customs = templates.filter((tpl) => !tpl.is_builtin);
   const allCustomsSelected = customs.length > 0 && selected.size === customs.length;
   const someCustomsSelected = selected.size > 0 && selected.size < customs.length;
 
   return (
     <main className="mx-auto max-w-4xl p-6 pt-12">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">템플릿</h1>
-        <p className="mt-1 text-sm text-text-muted">빌트인을 복제하거나 직접 만들어 저장하세요.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("templates.title")}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t("templates.subtitle")}</p>
       </header>
 
       {error ? (
@@ -119,18 +125,18 @@ export default function TemplatesPage() {
       ) : null}
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">빌트인</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{t("templates.builtinHeader")}</h2>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-          {builtins.map((t) => (
-            <article key={t.id} className="rounded-token-lg border border-border bg-surface-elevated p-4">
-              <p className="font-medium">{t.name}</p>
-              <p className="mt-1 text-xs text-text-muted">읽기 전용</p>
+          {builtins.map((tpl) => (
+            <article key={tpl.id} className="rounded-token-lg border border-border bg-surface-elevated p-4">
+              <p className="font-medium">{tpl.name}</p>
+              <p className="mt-1 text-xs text-text-muted">{t("templates.readOnly")}</p>
               <button
                 type="button"
-                onClick={() => handleClone(t)}
+                onClick={() => handleClone(tpl)}
                 className="mt-3 w-full rounded-token bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
               >
-                복제해서 편집
+                {t("templates.cloneEdit")}
               </button>
             </article>
           ))}
@@ -139,7 +145,7 @@ export default function TemplatesPage() {
 
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">내 템플릿</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{t("templates.myHeader")}</h2>
           {customs.length > 0 ? (
             <div className="flex items-center gap-2 text-sm">
               <label className="flex items-center gap-2 text-text-muted">
@@ -152,8 +158,10 @@ export default function TemplatesPage() {
                   onChange={toggleAllCustom}
                   className="h-4 w-4 rounded border-border accent-primary"
                 />
-                {allCustomsSelected ? "전체 해제" : "전체 선택"}
-                {selected.size > 0 ? <span className="text-primary">· {selected.size}개</span> : null}
+                {allCustomsSelected ? t("common.clearAll") : t("common.selectAll")}
+                {selected.size > 0 ? (
+                  <span className="text-primary">· {t("common.selectedCount", { n: selected.size })}</span>
+                ) : null}
               </label>
               <button
                 type="button"
@@ -161,21 +169,21 @@ export default function TemplatesPage() {
                 disabled={selected.size === 0 || busy}
                 className="rounded-token border border-border px-3 py-1.5 text-xs text-danger hover:bg-danger/10 disabled:opacity-50"
               >
-                {busy ? "삭제 중..." : `선택 삭제 (${selected.size})`}
+                {busy ? t("common.deleting") : t("common.deleteSelected", { n: selected.size })}
               </button>
             </div>
           ) : null}
         </div>
 
         {customs.length === 0 ? (
-          <p className="mt-3 text-sm text-text-muted">아직 만든 템플릿이 없습니다. 빌트인을 복제해 시작하세요.</p>
+          <p className="mt-3 text-sm text-text-muted">{t("templates.empty")}</p>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {customs.map((t) => {
-              const isSelected = selected.has(t.id);
+            {customs.map((tpl) => {
+              const isSelected = selected.has(tpl.id);
               return (
                 <article
-                  key={t.id}
+                  key={tpl.id}
                   className={`rounded-token-lg border bg-surface-elevated p-4 transition ${
                     isSelected ? "border-primary" : "border-border"
                   }`}
@@ -184,26 +192,26 @@ export default function TemplatesPage() {
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => toggleOne(t.id)}
-                      aria-label="선택"
+                      onChange={() => toggleOne(tpl.id)}
+                      aria-label={t("common.selectAria")}
                       className="mt-1 h-4 w-4 flex-shrink-0 rounded border-border accent-primary"
                     />
-                    <p className="flex-1 font-medium">{t.name}</p>
+                    <p className="flex-1 font-medium">{tpl.name}</p>
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => handleEdit(t)}
+                      onClick={() => handleEdit(tpl)}
                       className="flex-1 rounded-token border border-border px-3 py-1.5 text-sm hover:bg-surface"
                     >
-                      편집
+                      {t("common.edit")}
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteOne(t)}
+                      onClick={() => handleDeleteOne(tpl)}
                       className="rounded-token border border-border px-3 py-1.5 text-sm text-danger hover:bg-danger/10"
                     >
-                      삭제
+                      {t("common.delete")}
                     </button>
                   </div>
                 </article>
@@ -218,19 +226,19 @@ export default function TemplatesPage() {
           <div className="w-full max-w-2xl rounded-token-xl border border-border bg-bg p-6 shadow-token-lg">
             <header className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">
-                {editing.mode === "create" ? "새 템플릿 만들기" : "템플릿 편집"}
+                {editing.mode === "create" ? t("templates.modalNew") : t("templates.modalEdit")}
               </h2>
               <button
                 type="button"
                 onClick={() => setEditing({ mode: "idle" })}
                 className="rounded-token border border-border px-2 py-1 text-sm hover:bg-surface"
               >
-                닫기
+                {t("common.close")}
               </button>
             </header>
 
             <label className="mt-4 flex flex-col gap-1 text-sm">
-              <span className="text-text-muted">이름</span>
+              <span className="text-text-muted">{t("templates.modalName")}</span>
               <input
                 type="text"
                 value={editing.name}
@@ -256,7 +264,7 @@ export default function TemplatesPage() {
                 onClick={() => setEditing({ mode: "idle" })}
                 className="rounded-token border border-border px-4 py-2 text-sm hover:bg-surface"
               >
-                취소
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -264,7 +272,7 @@ export default function TemplatesPage() {
                 disabled={!editing.name.trim()}
                 className="rounded-token bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
               >
-                저장
+                {t("common.save")}
               </button>
             </div>
           </div>

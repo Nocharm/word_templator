@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/settings-provider";
 import type { StyleSpec } from "@/lib/types";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function StyleSpecForm({ initial, onChange }: Props) {
+  const t = useT();
   const [spec, setSpec] = useState<StyleSpec>(initial);
 
   function update(next: StyleSpec) {
@@ -64,10 +66,17 @@ export function StyleSpecForm({ initial, onChange }: Props) {
     update({ ...spec, page: { ...spec.page, [side]: value } });
   }
 
+  const marginLabels = {
+    margin_top_mm: t("styleSpec.marginTop"),
+    margin_bottom_mm: t("styleSpec.marginBottom"),
+    margin_left_mm: t("styleSpec.marginLeft"),
+    margin_right_mm: t("styleSpec.marginRight"),
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <Section title="본문 폰트">
-        <Row label="한글 폰트">
+      <Section title={t("styleSpec.bodyFont")}>
+        <Row label={t("styleSpec.koreanFont")}>
           <input
             type="text"
             value={spec.fonts.body.korean}
@@ -75,7 +84,7 @@ export function StyleSpecForm({ initial, onChange }: Props) {
             className="form-input"
           />
         </Row>
-        <Row label="영문 폰트">
+        <Row label={t("styleSpec.latinFont")}>
           <input
             type="text"
             value={spec.fonts.body.ascii}
@@ -83,7 +92,7 @@ export function StyleSpecForm({ initial, onChange }: Props) {
             className="form-input"
           />
         </Row>
-        <Row label="크기 (pt)">
+        <Row label={t("styleSpec.size")}>
           <input
             type="number"
             min={6}
@@ -96,7 +105,7 @@ export function StyleSpecForm({ initial, onChange }: Props) {
         </Row>
       </Section>
 
-      <Section title="제목 크기 (pt) / 굵게">
+      <Section title={t("styleSpec.headings")}>
         {(["h1", "h2", "h3"] as const).map((lvl) => (
           <Row key={lvl} label={lvl.toUpperCase()}>
             <input
@@ -114,14 +123,14 @@ export function StyleSpecForm({ initial, onChange }: Props) {
                 checked={spec.fonts.heading[lvl].bold ?? false}
                 onChange={(e) => setHeadingBold(lvl, e.target.checked)}
               />
-              굵게
+              {t("styleSpec.bold")}
             </label>
           </Row>
         ))}
       </Section>
 
-      <Section title="문단">
-        <Row label="줄간격">
+      <Section title={t("styleSpec.paragraph")}>
+        <Row label={t("styleSpec.lineSpacing")}>
           <input
             type="number"
             min={1}
@@ -132,19 +141,19 @@ export function StyleSpecForm({ initial, onChange }: Props) {
             className="form-input w-24"
           />
         </Row>
-        <Row label="정렬">
+        <Row label={t("styleSpec.alignment")}>
           <select
             value={spec.paragraph.alignment}
             onChange={(e) => setParagraph("alignment", e.target.value as StyleSpec["paragraph"]["alignment"])}
             className="form-input"
           >
-            <option value="left">왼쪽</option>
-            <option value="center">가운데</option>
-            <option value="right">오른쪽</option>
-            <option value="justify">양쪽</option>
+            <option value="left">{t("styleSpec.alignLeft")}</option>
+            <option value="center">{t("styleSpec.alignCenter")}</option>
+            <option value="right">{t("styleSpec.alignRight")}</option>
+            <option value="justify">{t("styleSpec.alignJustify")}</option>
           </select>
         </Row>
-        <Row label="첫줄 들여쓰기 (pt)">
+        <Row label={t("styleSpec.firstLineIndent")}>
           <input
             type="number"
             min={0}
@@ -157,14 +166,9 @@ export function StyleSpecForm({ initial, onChange }: Props) {
         </Row>
       </Section>
 
-      <Section title="페이지 여백 (mm)">
+      <Section title={t("styleSpec.pageMargins")}>
         {(["margin_top_mm", "margin_bottom_mm", "margin_left_mm", "margin_right_mm"] as const).map((side) => (
-          <Row key={side} label={{
-            margin_top_mm: "위",
-            margin_bottom_mm: "아래",
-            margin_left_mm: "왼쪽",
-            margin_right_mm: "오른쪽",
-          }[side]}>
+          <Row key={side} label={marginLabels[side]}>
             <input
               type="number"
               min={0}

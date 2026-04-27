@@ -3,6 +3,7 @@ import { fetchMe } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { JobsList } from "@/components/jobs-list";
+import { getServerT } from "@/lib/i18n-server";
 import type { JobSummary } from "@/lib/types";
 
 // 서버 컴포넌트 → 컨테이너 내부에서 backend로 직접 fetch
@@ -23,17 +24,17 @@ async function fetchJobs(): Promise<JobSummary[]> {
 export default async function DashboardPage() {
   const me = await fetchMe();
   if (!me) redirect("/login");
-  const jobs = await fetchJobs();
+  const [jobs, t] = await Promise.all([fetchJobs(), getServerT()]);
 
   return (
     <main className="mx-auto max-w-3xl p-6 pt-12">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">히스토리</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
         <Link
           href="/"
           className="rounded-token bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
         >
-          새 변환
+          {t("dashboard.newConvert")}
         </Link>
       </header>
 

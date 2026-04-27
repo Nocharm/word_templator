@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
+import { useSettings } from "@/components/settings-provider";
 import type { JobSummary } from "@/lib/types";
 
 export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
   const router = useRouter();
+  const { t, language } = useSettings();
+  const dateLocale = language === "ko" ? "ko-KR" : "en-US";
   const [jobs, setJobs] = useState(initialJobs);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -32,7 +35,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
 
   async function handleBulkDelete() {
     if (selected.size === 0) return;
-    if (!confirm(`선택한 ${selected.size}개 작업을 삭제하시겠습니까? 결과 파일도 함께 삭제됩니다.`)) return;
+    if (!confirm(t("jobsList.bulkDeleteConfirm", { n: selected.size }))) return;
     setBusy(true);
     try {
       const ids = Array.from(selected);
@@ -48,7 +51,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
   }
 
   async function handleSingleDelete(id: string, filename: string) {
-    if (!confirm(`"${filename}" 삭제하시겠습니까?`)) return;
+    if (!confirm(t("jobsList.singleDeleteConfirm", { name: filename }))) return;
     setBusy(true);
     try {
       await api.deleteJob(id);
@@ -67,10 +70,10 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
   if (jobs.length === 0) {
     return (
       <div className="mt-12 rounded-token-xl border border-border bg-surface p-12 text-center text-sm text-text-muted">
-        변환 이력이 없습니다.
+        {t("jobsList.empty")}
         <div className="mt-4">
           <Link href="/" className="text-primary hover:underline">
-            첫 .docx 업로드 →
+            {t("jobsList.firstUpload")}
           </Link>
         </div>
       </div>
@@ -91,9 +94,9 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
             onChange={toggleAll}
             className="h-4 w-4 rounded border-border accent-primary"
           />
-          {allSelected ? "전체 해제" : "전체 선택"}
+          {allSelected ? t("common.clearAll") : t("common.selectAll")}
           {selected.size > 0 ? (
-            <span className="ml-2 text-primary">· {selected.size}개 선택됨</span>
+            <span className="ml-2 text-primary">· {t("common.selectedCount", { n: selected.size })}</span>
           ) : null}
         </label>
         <button
@@ -102,7 +105,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
           disabled={selected.size === 0 || busy}
           className="rounded-token border border-border px-3 py-1.5 text-sm text-danger hover:bg-danger/10 disabled:opacity-50"
         >
-          {busy ? "삭제 중..." : `선택 삭제 (${selected.size})`}
+          {busy ? t("common.deleting") : t("common.deleteSelected", { n: selected.size })}
         </button>
       </div>
 
@@ -130,7 +133,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
                   checked={isSelected}
                   onChange={() => toggle(job.id)}
                   onClick={(e) => e.stopPropagation()}
-                  aria-label="선택"
+                  aria-label={t("common.selectAria")}
                   className="h-4 w-4 flex-shrink-0 rounded border-border accent-primary"
                 />
                 <Link href={`/editor/${job.id}`} className="min-w-0 flex-1">
@@ -138,7 +141,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
                   <p className="mt-1 text-xs text-text-muted">
                     <span className={statusColor}>{job.status}</span>
                     <span className="mx-2">·</span>
-                    {new Date(job.created_at).toLocaleString("ko-KR")}
+                    {new Date(job.created_at).toLocaleString(dateLocale)}
                     {job.applied_template_name ? (
                       <>
                         <span className="mx-2">·</span>
@@ -157,7 +160,7 @@ export function JobsList({ initialJobs }: { initialJobs: JobSummary[] }) {
                   disabled={busy}
                   className="rounded-token border border-border px-3 py-1.5 text-xs text-danger hover:bg-danger/10 disabled:opacity-50"
                 >
-                  삭제
+                  {t("common.delete")}
                 </button>
               </div>
             </li>

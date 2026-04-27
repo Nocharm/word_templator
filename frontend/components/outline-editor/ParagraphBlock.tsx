@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useT } from "@/components/settings-provider";
 import type { Block } from "@/lib/types";
 
 interface Props {
@@ -58,6 +59,7 @@ export function ParagraphBlock({
   headingNumber,
   onSelect,
 }: Props) {
+  const t = useT();
   const isHeading = block.level >= 1;
   const heuristic = block.detected_by === "heuristic";
 
@@ -99,14 +101,14 @@ export function ParagraphBlock({
           heuristic && "text-warning",
         )}
       >
-        {block.level === 0 ? "본문" : `H${block.level}`}
+        {block.level === 0 ? t("paragraph.bodyChip") : `H${block.level}`}
         {heuristic ? " ⚠" : ""}
       </span>
 
       {isHeading && headingNumber ? (
         <span
           className="shrink-0 self-center rounded bg-bg/70 px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums text-primary"
-          aria-label={`섹션 번호 ${headingNumber}`}
+          aria-label={headingNumber}
         >
           {headingNumber}
         </span>
@@ -116,8 +118,8 @@ export function ParagraphBlock({
         <span
           title={
             block.field_kind
-              ? `필드 보존: ${block.field_kind.toUpperCase()}`
-              : "북마크/원본 OOXML 보존"
+              ? t("paragraph.fieldPreservedTitle", { kind: block.field_kind.toUpperCase() })
+              : t("paragraph.bookmarkTitle")
           }
           className="shrink-0 inline-flex items-center self-center rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-text-muted"
         >
@@ -126,7 +128,7 @@ export function ParagraphBlock({
       ) : null}
 
       <span className="flex-1 whitespace-pre-wrap break-words leading-snug">
-        {block.text || <span className="italic text-text-muted">(빈 문단)</span>}
+        {block.text || <span className="italic text-text-muted">{t("paragraph.empty")}</span>}
       </span>
     </div>
   );

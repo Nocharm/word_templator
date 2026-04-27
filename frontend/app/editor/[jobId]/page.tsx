@@ -3,15 +3,23 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useT } from "@/components/settings-provider";
+import type { TFunction } from "@/lib/i18n";
 import type { Outline, Template } from "@/lib/types";
 import { OutlineEditor } from "@/components/outline-editor/OutlineEditor";
 
-function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" | "error" }) {
+function SaveIndicator({
+  state,
+  t,
+}: {
+  state: "idle" | "saving" | "saved" | "error";
+  t: TFunction;
+}) {
   if (state === "idle") return null;
   const label = {
-    saving: "저장 중...",
-    saved: "저장됨",
-    error: "저장 실패",
+    saving: t("editor.saveSaving"),
+    saved: t("editor.saveSaved"),
+    error: t("editor.saveFailed"),
   }[state];
   const cls = {
     saving: "text-text-muted",
@@ -23,6 +31,7 @@ function SaveIndicator({ state }: { state: "idle" | "saving" | "saved" | "error"
 
 export default function EditorPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ jobId: string }>();
   const jobId = params.jobId;
   const [outline, setOutline] = useState<Outline | null>(null);
@@ -34,10 +43,10 @@ export default function EditorPage() {
 
   useEffect(() => {
     Promise.all([api.getOutline(jobId), api.listTemplates()])
-      .then(([o, t]) => {
+      .then(([o, tpls]) => {
         setOutline(o);
-        setTemplates(t);
-        const builtin = t.find((x) => x.is_builtin);
+        setTemplates(tpls);
+        const builtin = tpls.find((x) => x.is_builtin);
         if (builtin) setSelectedTpl(builtin.id);
       })
       .catch((e) => setError((e as Error).message));
@@ -85,7 +94,7 @@ export default function EditorPage() {
     );
   }
   if (!outline) {
-    return <main className="mx-auto max-w-4xl p-6 text-text-muted">로딩 중...</main>;
+    return <main className="mx-auto max-w-4xl p-6 text-text-muted">{t("common.loading")}</main>;
   }
 
   return (
@@ -97,32 +106,32 @@ export default function EditorPage() {
             <kbd className="rounded bg-surface px-1.5 py-0.5 text-xs">Tab</kbd>
             <span className="mx-1">/</span>
             <kbd className="rounded bg-surface px-1.5 py-0.5 text-xs">Shift+Tab</kbd>
-            으로 문단 레벨 조정 · ⚠️는 휴리스틱 추정
+            {t("editor.kbdHint")}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <SaveIndicator state={saveState} />
+          <SaveIndicator state={saveState} t={t} />
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
             className="rounded-token border border-border bg-surface-elevated px-4 py-2 text-sm hover:bg-surface"
           >
-            히스토리
+            {t("editor.history")}
           </button>
         </div>
       </header>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 rounded-token-lg border border-border bg-surface-elevated p-4 shadow-token-sm">
-        <label className="text-sm text-text-muted">템플릿</label>
+        <label className="text-sm text-text-muted">{t("common.template")}</label>
         <select
           className="flex-1 rounded-token border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary"
           value={selectedTpl}
           onChange={(e) => handleSelectTemplate(e.target.value)}
         >
-          {templates.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-              {t.is_builtin ? " · 빌트인" : ""}
+          {templates.map((tpl) => (
+            <option key={tpl.id} value={tpl.id}>
+              {tpl.name}
+              {tpl.is_builtin ? t("common.templateBuiltinSuffix") : ""}
             </option>
           ))}
         </select>
@@ -132,7 +141,7 @@ export default function EditorPage() {
           disabled={busy || !selectedTpl}
           className="rounded-token bg-primary px-5 py-2 text-sm font-medium text-white transition hover:bg-primary-hover disabled:opacity-50"
         >
-          {busy ? "변환 중..." : "변환 + 검토 →"}
+          {busy ? t("editor.converting") : t("editor.convertReview")}
         </button>
       </div>
 

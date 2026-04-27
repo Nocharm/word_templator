@@ -3,18 +3,20 @@
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useSettings } from "@/components/settings-provider";
+import type { MessageKey, TFunction } from "@/lib/i18n";
 import type { Feedback, FeedbackCategory, FeedbackStatus } from "@/lib/types";
 
-const CATEGORY_LABEL: Record<FeedbackCategory, string> = {
-  bug: "🐞 버그",
-  feature: "✨ 기능",
-  other: "💬 기타",
+const CATEGORY_KEY: Record<FeedbackCategory, MessageKey> = {
+  bug: "feedback.cat.bug",
+  feature: "feedback.cat.feature",
+  other: "feedback.cat.other",
 };
 
-const STATUS_LABEL: Record<FeedbackStatus, string> = {
-  open: "접수됨",
-  in_progress: "처리 중",
-  closed: "완료",
+const STATUS_KEY: Record<FeedbackStatus, MessageKey> = {
+  open: "feedback.status.open",
+  in_progress: "feedback.status.inProgress",
+  closed: "feedback.status.closed",
 };
 
 const STATUS_BADGE: Record<FeedbackStatus, string> = {
@@ -26,7 +28,18 @@ const STATUS_BADGE: Record<FeedbackStatus, string> = {
 type StatusFilter = FeedbackStatus | "all";
 type CategoryFilter = FeedbackCategory | "all";
 
+function categoryLabel(c: FeedbackCategory, t: TFunction): string {
+  return t(CATEGORY_KEY[c]);
+}
+
+function statusLabel(s: FeedbackStatus, t: TFunction): string {
+  return t(STATUS_KEY[s]);
+}
+
 export function AdminFeedbackClient() {
+  const { t, language } = useSettings();
+  const dateLocale = language === "ko" ? "ko-KR" : "en-US";
+
   const [list, setList] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,9 +91,14 @@ export function AdminFeedbackClient() {
     <main className="mx-auto max-w-5xl p-6 pt-12">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">피드백 관리</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("adminFb.title")}</h1>
           <p className="mt-1 text-sm text-text-muted">
-            전체 {counts.total} · 접수 {counts.open} · 처리 중 {counts.progress} · 완료 {counts.closed}
+            {t("adminFb.counts", {
+              total: counts.total,
+              open: counts.open,
+              progress: counts.progress,
+              closed: counts.closed,
+            })}
           </p>
         </div>
         <button
@@ -88,7 +106,7 @@ export function AdminFeedbackClient() {
           onClick={reload}
           className="rounded-token border border-border bg-surface-elevated px-3 py-1.5 text-sm hover:bg-surface"
         >
-          ↻ 새로고침
+          {t("adminFb.refresh")}
         </button>
       </header>
 
@@ -98,24 +116,24 @@ export function AdminFeedbackClient() {
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <FilterChips<StatusFilter>
-          label="상태"
+          label={t("adminFb.filterStatus")}
           value={statusFilter}
           options={[
-            { value: "all", label: "전체" },
-            { value: "open", label: STATUS_LABEL.open },
-            { value: "in_progress", label: STATUS_LABEL.in_progress },
-            { value: "closed", label: STATUS_LABEL.closed },
+            { value: "all", label: t("adminFb.all") },
+            { value: "open", label: statusLabel("open", t) },
+            { value: "in_progress", label: statusLabel("in_progress", t) },
+            { value: "closed", label: statusLabel("closed", t) },
           ]}
           onChange={setStatusFilter}
         />
         <FilterChips<CategoryFilter>
-          label="분류"
+          label={t("adminFb.filterCategory")}
           value={categoryFilter}
           options={[
-            { value: "all", label: "전체" },
-            { value: "bug", label: CATEGORY_LABEL.bug },
-            { value: "feature", label: CATEGORY_LABEL.feature },
-            { value: "other", label: CATEGORY_LABEL.other },
+            { value: "all", label: t("adminFb.all") },
+            { value: "bug", label: categoryLabel("bug", t) },
+            { value: "feature", label: categoryLabel("feature", t) },
+            { value: "other", label: categoryLabel("other", t) },
           ]}
           onChange={setCategoryFilter}
         />
@@ -123,9 +141,9 @@ export function AdminFeedbackClient() {
 
       <section className="mt-6">
         {loading ? (
-          <p className="text-sm text-text-muted">불러오는 중...</p>
+          <p className="text-sm text-text-muted">{t("common.loading")}</p>
         ) : list.length === 0 ? (
-          <p className="text-sm text-text-muted">조건에 해당하는 피드백이 없습니다.</p>
+          <p className="text-sm text-text-muted">{t("adminFb.empty")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {list.map((fb) => {
@@ -140,29 +158,27 @@ export function AdminFeedbackClient() {
                     onClick={() => setOpenId(expanded ? null : fb.id)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left"
                   >
-                    <span className="text-xs text-text-muted">
-                      {CATEGORY_LABEL[fb.category]}
-                    </span>
+                    <span className="text-xs text-text-muted">{categoryLabel(fb.category, t)}</span>
                     <span
                       className={clsx(
                         "rounded-token px-2 py-0.5 text-xs font-medium",
                         STATUS_BADGE[fb.status],
                       )}
                     >
-                      {STATUS_LABEL[fb.status]}
+                      {statusLabel(fb.status, t)}
                     </span>
                     <span className="flex-1 truncate font-medium">{fb.title}</span>
                     <span className="hidden md:inline truncate text-xs text-text-muted max-w-[180px]">
                       {fb.user_email ?? fb.user_id}
                     </span>
                     <span className="text-xs text-text-muted">
-                      {new Date(fb.created_at).toLocaleDateString("ko-KR")}
+                      {new Date(fb.created_at).toLocaleDateString(dateLocale)}
                     </span>
                     <span className="text-xs text-text-muted">{expanded ? "▾" : "▸"}</span>
                   </button>
 
                   {expanded ? (
-                    <FeedbackDetail feedback={fb} onUpdate={handleUpdate} />
+                    <FeedbackDetail feedback={fb} onUpdate={handleUpdate} t={t} />
                   ) : null}
                 </li>
               );
@@ -215,9 +231,11 @@ function FilterChips<T extends string>({
 function FeedbackDetail({
   feedback,
   onUpdate,
+  t,
 }: {
   feedback: Feedback;
   onUpdate: (id: string, patch: { status?: FeedbackStatus; admin_note?: string }) => Promise<void>;
+  t: TFunction;
 }) {
   const [note, setNote] = useState(feedback.admin_note ?? "");
   const [saving, setSaving] = useState(false);
@@ -242,7 +260,7 @@ function FeedbackDetail({
       <p className="whitespace-pre-wrap text-sm">{feedback.body}</p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-text-muted">상태 변경</span>
+        <span className="text-xs text-text-muted">{t("adminFb.statusLabel")}</span>
         {(["open", "in_progress", "closed"] as FeedbackStatus[]).map((s) => {
           const selected = s === feedback.status;
           return (
@@ -257,21 +275,21 @@ function FeedbackDetail({
                   : "border-border bg-bg text-text-muted hover:text-text hover:bg-surface",
               )}
             >
-              {STATUS_LABEL[s]}
+              {statusLabel(s, t)}
             </button>
           );
         })}
       </div>
 
       <label className="mt-4 flex flex-col gap-1 text-sm">
-        <span className="text-text-muted">관리자 답변 / 메모</span>
+        <span className="text-text-muted">{t("adminFb.replyNote")}</span>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           maxLength={5000}
           className="form-input resize-y"
-          placeholder="사용자에게 보일 답변 또는 내부 메모"
+          placeholder={t("adminFb.replyPlaceholder")}
         />
       </label>
 
@@ -282,7 +300,7 @@ function FeedbackDetail({
           disabled={!dirty || saving}
           className="rounded-token bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-hover disabled:opacity-50"
         >
-          {saving ? "저장 중..." : "메모 저장"}
+          {saving ? t("adminFb.saving") : t("adminFb.saveNote")}
         </button>
       </div>
     </div>
