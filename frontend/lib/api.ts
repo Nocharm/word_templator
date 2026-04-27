@@ -76,4 +76,23 @@ export const api = {
     request<void>(`/templates/${id}`, { method: "DELETE" }),
   deleteJob: (jobId: string) =>
     request<void>(`/jobs/${jobId}`, { method: "DELETE" }),
+  uploadBatch: (files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return request<import("./types").BatchUploadItem[]>("/jobs/batch/upload", {
+      method: "POST",
+      body: fd,
+    });
+  },
+  renderBatch: (
+    jobIds: string[],
+    templateId: string,
+    overrides: Record<string, unknown> = {},
+  ) =>
+    request<import("./types").BatchRenderItem[]>("/jobs/batch/render", {
+      method: "POST",
+      body: JSON.stringify({ job_ids: jobIds, template_id: templateId, overrides }),
+    }),
+  batchDownloadUrl: (jobIds: string[]) =>
+    `${BASE}/jobs/batch/download?ids=${jobIds.join(",")}`,
 };

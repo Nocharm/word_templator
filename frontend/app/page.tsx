@@ -11,12 +11,20 @@ export default async function HomePage() {
         <h1 className="text-3xl font-semibold tracking-tight">Word Templator</h1>
         <nav className="flex gap-2 text-sm">
           {me ? (
-            <Link
-              href="/dashboard"
-              className="rounded-token border border-border bg-surface-elevated px-3 py-1.5 text-text-muted hover:text-text"
-            >
-              히스토리
-            </Link>
+            <>
+              <Link
+                href="/batch"
+                className="rounded-token border border-border bg-surface-elevated px-3 py-1.5 text-text-muted hover:text-text"
+              >
+                일괄 변환
+              </Link>
+              <Link
+                href="/dashboard"
+                className="rounded-token border border-border bg-surface-elevated px-3 py-1.5 text-text-muted hover:text-text"
+              >
+                히스토리
+              </Link>
+            </>
           ) : (
             <Link
               href="/login"

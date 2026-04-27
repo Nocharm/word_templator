@@ -70,6 +70,19 @@ export interface JobSummary {
   applied_template_name?: string | null;
 }
 
+export interface BatchUploadItem {
+  job_id: string;
+  original_filename: string;
+  status: "parsed" | "failed";
+  error?: string | null;
+}
+
+export interface BatchRenderItem {
+  job_id: string;
+  status: "rendered" | "failed";
+  error?: string | null;
+}
+
 export interface PreviewResponse {
   before: Outline;
   after: Outline;
