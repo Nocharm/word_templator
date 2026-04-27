@@ -7,38 +7,68 @@ interface Props {
   block: Block;
   isSelected: boolean;
   parentLevel: number;
+  headingNumber: string | null;
   onSelect: (id: string, mods: { shift: boolean; meta: boolean }) => void;
 }
 
-const INDENT = ["pl-0", "pl-3", "pl-8", "pl-14", "pl-20", "pl-24"];
-const TEXT_SIZE = ["text-base", "text-2xl", "text-xl", "text-lg", "text-base", "text-base"];
+// 들여쓰기 — 헤딩과 본문이 단계별로 같은 깊이를 공유.
+const INDENT = ["ml-0", "ml-0", "ml-4", "ml-10", "ml-16", "ml-20"];
 
+// 헤딩 타이포그래피 — 위→아래 점진적 축소.
+const HEADING_TEXT = [
+  "",
+  "text-2xl font-bold tracking-tight",
+  "text-xl font-bold",
+  "text-lg font-semibold",
+  "text-base font-semibold",
+  "text-sm font-medium",
+];
+
+// 헤딩 좌측 트랙 + 배경 — 깊이가 한눈에 들어오도록 색/굵기 차이 강화.
 const HEADING_DECO = [
-  "border-l-2 border-transparent",
-  "border-l-4 border-primary bg-primary/10",
-  "border-l-4 border-primary/70 bg-primary/5",
-  "border-l-[3px] border-primary/55 bg-primary/5",
-  "border-l-2 border-primary/40",
+  "",
+  // H1: chapter 느낌 — 두꺼운 막대 + 좌→우 그라디언트 배경 + 상단 구분선
+  "mt-5 pt-3 border-t border-border " +
+    "border-l-[6px] border-primary " +
+    "bg-gradient-to-r from-primary/15 via-primary/5 to-transparent",
+  // H2
+  "mt-3 border-l-[5px] border-primary/80 bg-primary/10",
+  // H3
+  "mt-1 border-l-[4px] border-primary/60 bg-primary/5",
+  // H4
+  "border-l-[3px] border-primary/40 bg-primary/[0.03]",
+  // H5
   "border-l-2 border-primary/30",
 ];
 
+// 본문 — 부모 헤딩과 시각적으로 묶이도록 점선 좌측 가이드.
 const BODY_DECO = [
-  "border-l-2 border-transparent",
-  "border-l-4 border-primary/20",
-  "border-l-4 border-primary/15",
-  "border-l-[3px] border-primary/15",
-  "border-l-2 border-primary/10",
-  "border-l-2 border-primary/10",
+  "",
+  "border-l border-dashed border-primary/25",
+  "border-l border-dashed border-primary/20",
+  "border-l border-dashed border-primary/15",
+  "border-l border-dashed border-primary/10",
+  "border-l border-dashed border-primary/10",
 ];
 
-export function ParagraphBlock({ block, isSelected, parentLevel, onSelect }: Props) {
+export function ParagraphBlock({
+  block,
+  isSelected,
+  parentLevel,
+  headingNumber,
+  onSelect,
+}: Props) {
   const isHeading = block.level >= 1;
   const heuristic = block.detected_by === "heuristic";
 
-  const indentIdx = isHeading ? block.level : parentLevel;
-  const indent = INDENT[indentIdx] ?? "pl-24";
-  const textSize = TEXT_SIZE[block.level] ?? "text-base";
-  const deco = isHeading ? (HEADING_DECO[block.level] ?? "") : (BODY_DECO[parentLevel] ?? "");
+  const depthIdx = isHeading ? block.level : Math.max(parentLevel, 0);
+  const indent = INDENT[depthIdx] ?? "ml-20";
+  const textSize = isHeading ? (HEADING_TEXT[block.level] ?? "text-sm") : "text-sm";
+  const deco = isHeading
+    ? (HEADING_DECO[block.level] ?? "")
+    : parentLevel > 0
+      ? (BODY_DECO[parentLevel] ?? "")
+      : "";
 
   function handleClick(e: React.MouseEvent) {
     onSelect(block.id, { shift: e.shiftKey, meta: e.metaKey || e.ctrlKey });
@@ -53,21 +83,34 @@ export function ParagraphBlock({ block, isSelected, parentLevel, onSelect }: Pro
         indent,
         textSize,
         deco,
-        "group flex items-start gap-2 cursor-pointer rounded-token px-3 py-1.5 outline-none transition select-none",
-        isHeading ? "font-semibold" : "font-normal text-text",
+        "group flex items-start gap-2 cursor-pointer rounded-r-token px-3 py-1.5 outline-none transition select-none",
+        isHeading ? "text-text" : "font-normal text-text",
         isSelected && "ring-2 ring-inset ring-primary",
         heuristic && !isSelected && "ring-1 ring-inset ring-warning/60",
       )}
     >
+      {/* 깊이 칩 — H1은 padded 큰 라벨, H2~ 는 컴팩트 텍스트 */}
       <span
         className={clsx(
-          "mr-1 inline-block min-w-[2.5rem] text-xs font-medium uppercase tracking-wide opacity-60 group-hover:opacity-100",
-          heuristic ? "text-warning" : "text-text-muted",
+          "shrink-0 self-center rounded font-mono uppercase tracking-wide",
+          isHeading
+            ? "bg-primary/15 text-primary px-2 py-0.5 text-[10px] font-bold"
+            : "text-text-muted/70 text-[10px] px-1",
+          heuristic && "text-warning",
         )}
       >
         {block.level === 0 ? "본문" : `H${block.level}`}
         {heuristic ? " ⚠" : ""}
       </span>
+
+      {isHeading && headingNumber ? (
+        <span
+          className="shrink-0 self-center rounded bg-bg/70 px-1.5 py-0.5 font-mono text-xs font-bold tabular-nums text-primary"
+          aria-label={`섹션 번호 ${headingNumber}`}
+        >
+          {headingNumber}
+        </span>
+      ) : null}
 
       {block.raw_xml_ref ? (
         <span
@@ -76,13 +119,13 @@ export function ParagraphBlock({ block, isSelected, parentLevel, onSelect }: Pro
               ? `필드 보존: ${block.field_kind.toUpperCase()}`
               : "북마크/원본 OOXML 보존"
           }
-          className="mr-1 inline-flex shrink-0 items-center self-center rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-text-muted"
+          className="shrink-0 inline-flex items-center self-center rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-text-muted"
         >
           📎{block.field_kind === "unknown" ? " ?" : ""}
         </span>
       ) : null}
 
-      <span className="flex-1 whitespace-pre-wrap break-words">
+      <span className="flex-1 whitespace-pre-wrap break-words leading-snug">
         {block.text || <span className="italic text-text-muted">(빈 문단)</span>}
       </span>
     </div>
