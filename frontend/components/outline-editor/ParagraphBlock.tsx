@@ -1,59 +1,47 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
 import type { Block } from "@/lib/types";
 
 interface Props {
   block: Block;
   isSelected: boolean;
+  parentLevel: number;
   onSelect: (id: string, mods: { shift: boolean; meta: boolean }) => void;
-  onTextChange: (id: string, text: string) => void;
 }
 
-const LEVEL_INDENT = ["pl-0", "pl-0", "pl-6", "pl-12", "pl-16", "pl-20"];
-const LEVEL_TEXT_SIZE = ["text-base", "text-2xl", "text-xl", "text-lg", "text-base", "text-base"];
+const INDENT = ["pl-0", "pl-3", "pl-8", "pl-14", "pl-20", "pl-24"];
+const TEXT_SIZE = ["text-base", "text-2xl", "text-xl", "text-lg", "text-base", "text-base"];
 
-export function ParagraphBlock({ block, isSelected, onSelect, onTextChange }: Props) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [draft, setDraft] = useState(block.text ?? "");
+const HEADING_DECO = [
+  "border-l-2 border-transparent",
+  "border-l-4 border-primary bg-primary/10",
+  "border-l-4 border-primary/70 bg-primary/5",
+  "border-l-[3px] border-primary/55 bg-primary/5",
+  "border-l-2 border-primary/40",
+  "border-l-2 border-primary/30",
+];
 
-  useEffect(() => {
-    setDraft(block.text ?? "");
-  }, [block.text]);
+const BODY_DECO = [
+  "border-l-2 border-transparent",
+  "border-l-4 border-primary/20",
+  "border-l-4 border-primary/15",
+  "border-l-[3px] border-primary/15",
+  "border-l-2 border-primary/10",
+  "border-l-2 border-primary/10",
+];
 
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [editing]);
-
+export function ParagraphBlock({ block, isSelected, parentLevel, onSelect }: Props) {
   const isHeading = block.level >= 1;
   const heuristic = block.detected_by === "heuristic";
 
+  const indentIdx = isHeading ? block.level : parentLevel;
+  const indent = INDENT[indentIdx] ?? "pl-24";
+  const textSize = TEXT_SIZE[block.level] ?? "text-base";
+  const deco = isHeading ? (HEADING_DECO[block.level] ?? "") : (BODY_DECO[parentLevel] ?? "");
+
   function handleClick(e: React.MouseEvent) {
-    if (editing) return;
     onSelect(block.id, { shift: e.shiftKey, meta: e.metaKey || e.ctrlKey });
-  }
-
-  function commitEdit() {
-    setEditing(false);
-    if (draft !== (block.text ?? "")) {
-      onTextChange(block.id, draft);
-    }
-  }
-
-  function handleEditKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      commitEdit();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setDraft(block.text ?? "");
-      setEditing(false);
-    }
   }
 
   return (
@@ -61,18 +49,14 @@ export function ParagraphBlock({ block, isSelected, onSelect, onTextChange }: Pr
       role="button"
       aria-pressed={isSelected}
       onClick={handleClick}
-      onDoubleClick={() => setEditing(true)}
       className={clsx(
-        LEVEL_INDENT[block.level] ?? "pl-20",
-        LEVEL_TEXT_SIZE[block.level] ?? "text-base",
-        "group flex items-start gap-2 cursor-pointer rounded-token border-l-2 px-3 py-1.5 outline-none transition select-none",
-        isHeading ? "font-semibold" : "font-normal",
-        !isHeading && "text-text",
-        isSelected
-          ? "bg-primary/10 border-primary"
-          : heuristic
-            ? "border-warning/60"
-            : "border-transparent hover:border-border",
+        indent,
+        textSize,
+        deco,
+        "group flex items-start gap-2 cursor-pointer rounded-token px-3 py-1.5 outline-none transition select-none",
+        isHeading ? "font-semibold" : "font-normal text-text",
+        isSelected && "ring-2 ring-inset ring-primary",
+        heuristic && !isSelected && "ring-1 ring-inset ring-warning/60",
       )}
     >
       <span
@@ -85,22 +69,9 @@ export function ParagraphBlock({ block, isSelected, onSelect, onTextChange }: Pr
         {heuristic ? " ⚠" : ""}
       </span>
 
-      {editing ? (
-        <textarea
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={handleEditKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          rows={1}
-          className="flex-1 resize-none rounded border border-primary/40 bg-bg px-2 py-0.5 outline-none focus:border-primary"
-        />
-      ) : (
-        <span className="flex-1 whitespace-pre-wrap break-words">
-          {block.text || <span className="italic text-text-muted">(빈 문단)</span>}
-        </span>
-      )}
+      <span className="flex-1 whitespace-pre-wrap break-words">
+        {block.text || <span className="italic text-text-muted">(빈 문단)</span>}
+      </span>
     </div>
   );
 }

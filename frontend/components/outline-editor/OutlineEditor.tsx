@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useRef, useState } from "react";
-import type { Outline } from "@/lib/types";
+import type { Block, Outline } from "@/lib/types";
 import { ParagraphBlock } from "./ParagraphBlock";
 import { TableBlock } from "./TableBlock";
 import { ImageBlock } from "./ImageBlock";
@@ -79,10 +79,25 @@ export function OutlineEditor({ initial, onChange }: Props) {
     }
   }
 
-  function handleTextChange(id: string, text: string) {
-    update({
-      ...outline,
-      blocks: outline.blocks.map((b) => (b.id === id ? { ...b, text } : b)),
+  // 본문(level=0) 블록은 가장 가까운 선행 헤딩의 레벨을 부모로 인식 → 인덴트·연결선 상속
+  function renderBlocks(blocks: Block[]) {
+    let parentLevel = 0;
+    return blocks.map((b) => {
+      if (b.kind === "paragraph" && b.level >= 1) parentLevel = b.level;
+      if (b.kind === "paragraph") {
+        return (
+          <ParagraphBlock
+            key={b.id}
+            block={b}
+            isSelected={selected.has(b.id)}
+            parentLevel={parentLevel}
+            onSelect={handleSelect}
+          />
+        );
+      }
+      if (b.kind === "table") return <TableBlock key={b.id} block={b} />;
+      if (b.kind === "image") return <ImageBlock key={b.id} block={b} />;
+      return <FieldBlock key={b.id} block={b} />;
     });
   }
 
@@ -102,7 +117,7 @@ export function OutlineEditor({ initial, onChange }: Props) {
               레벨 변경
             </>
           ) : (
-            <>클릭으로 단일 선택 · Shift+클릭 범위 · ⌘/Ctrl+클릭 토글 · 더블클릭 편집</>
+            <>클릭으로 단일 선택 · Shift+클릭 범위 · ⌘/Ctrl+클릭 토글</>
           )}
         </span>
         {count > 0 ? (
@@ -125,21 +140,7 @@ export function OutlineEditor({ initial, onChange }: Props) {
           count > 0 ? "border-primary/40" : "border-border",
         )}
       >
-        {outline.blocks.map((b) => {
-          if (b.kind === "paragraph")
-            return (
-              <ParagraphBlock
-                key={b.id}
-                block={b}
-                isSelected={selected.has(b.id)}
-                onSelect={handleSelect}
-                onTextChange={handleTextChange}
-              />
-            );
-          if (b.kind === "table") return <TableBlock key={b.id} block={b} />;
-          if (b.kind === "image") return <ImageBlock key={b.id} block={b} />;
-          return <FieldBlock key={b.id} block={b} />;
-        })}
+        {renderBlocks(outline.blocks)}
       </div>
     </div>
   );
