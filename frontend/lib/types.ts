@@ -11,7 +11,8 @@ export interface Block {
   preview_url?: string | null;
   caption?: string | null;
   raw_ref?: string | null;
-  field_kind?: string | null;
+  raw_xml_ref?: string | null;
+  field_kind?: "toc" | "ref" | "pageref" | "unknown" | null;
   preview_text?: string | null;
 }
 

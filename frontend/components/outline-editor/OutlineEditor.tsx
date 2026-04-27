@@ -102,9 +102,29 @@ export function OutlineEditor({ initial, onChange }: Props) {
   }
 
   const count = selected.size;
+  const preserved = outline.blocks.filter(
+    (b) => b.kind === "paragraph" && b.raw_xml_ref,
+  );
+  const preservedTotal = preserved.length;
+  const reviewable = preserved.filter((b) => b.field_kind === "unknown").length;
 
   return (
     <div className="space-y-2">
+      {preservedTotal > 0 ? (
+        <div className="flex items-center gap-2 rounded-token border border-border/60 bg-surface px-3 py-1.5 text-xs text-text-muted">
+          <span>📎</span>
+          <span>
+            필드/북마크 <span className="font-medium text-text">{preservedTotal}개</span> 보존됨
+            {reviewable > 0 ? (
+              <>
+                {" · "}
+                <span className="font-medium text-warning">{reviewable}개 검토 필요</span>
+              </>
+            ) : null}
+          </span>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
         <span>
           {count > 0 ? (

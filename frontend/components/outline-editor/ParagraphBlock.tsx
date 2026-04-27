@@ -69,6 +69,19 @@ export function ParagraphBlock({ block, isSelected, parentLevel, onSelect }: Pro
         {heuristic ? " ⚠" : ""}
       </span>
 
+      {block.raw_xml_ref ? (
+        <span
+          title={
+            block.field_kind
+              ? `필드 보존: ${block.field_kind.toUpperCase()}`
+              : "북마크/원본 OOXML 보존"
+          }
+          className="mr-1 inline-flex shrink-0 items-center self-center rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-medium text-text-muted"
+        >
+          📎{block.field_kind === "unknown" ? " ?" : ""}
+        </span>
+      ) : null}
+
       <span className="flex-1 whitespace-pre-wrap break-words">
         {block.text || <span className="italic text-text-muted">(빈 문단)</span>}
       </span>
