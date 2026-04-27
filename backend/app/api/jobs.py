@@ -436,10 +436,11 @@ def get_batch_download(
                 stem, _, ext = base.rpartition(".")
                 name = f"{stem}_{n}.{ext}" if ext else f"{base}_{n}"
             seen[base] = n + 1
-            if not job.result_path:
+            path_str = job.result_path
+            if not path_str:
                 continue
             try:
-                zf.write(job.result_path, arcname=name)
+                zf.write(path_str, arcname=name)
             except OSError:
                 continue
     buf.seek(0)
