@@ -45,6 +45,25 @@ def test_detect_field_kind_identifies_toc_and_ref(tmp_path):
     assert detect_field_kind(paragraphs[0]) is None
 
 
+def test_detect_field_kind_priority_pageref_over_ref_when_mixed(tmp_path):
+    """REF + PAGEREF 가 같은 문단에 섞여 있으면 PAGEREF 가 이긴다 (가장 구체적)."""
+    from docx import Document
+
+    from tests.fixtures.build_field_sample import add_simple_field
+
+    p = tmp_path / "mixed.docx"
+    doc = Document()
+    para = doc.add_paragraph()
+    para.add_run("앞 ")
+    add_simple_field(para, instr="REF _abc \\h", display_text="개요")
+    para.add_run(" 그리고 ")
+    add_simple_field(para, instr="PAGEREF _abc \\h", display_text="3")
+    doc.save(str(p))
+
+    reopened = list(Document(str(p)).paragraphs)
+    assert detect_field_kind(reopened[0]) == "pageref"
+
+
 def test_extract_field_preview_returns_display_text(tmp_path):
     doc = _load(tmp_path)
     paragraphs = list(doc.paragraphs)

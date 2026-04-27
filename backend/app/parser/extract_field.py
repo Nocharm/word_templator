@@ -40,14 +40,19 @@ def _instr_texts(paragraph: Paragraph) -> list[str]:
 def detect_field_kind(paragraph: Paragraph) -> FieldKind | None:
     if not paragraph_has_field(paragraph):
         return None
+    # 한 문단 안에 여러 필드가 섞여 있을 수 있어 (예: REF + PAGEREF) 우선순위로 분류.
+    # TOC > PAGEREF > REF > unknown — 가장 구체적인 종류가 이김.
+    heads: set[str] = set()
     for instr in _instr_texts(paragraph):
         head = instr.strip().split()[0].upper() if instr.strip() else ""
-        if head == "TOC":
-            return "toc"
-        if head == "PAGEREF":
-            return "pageref"
-        if head == "REF":
-            return "ref"
+        if head:
+            heads.add(head)
+    if "TOC" in heads:
+        return "toc"
+    if "PAGEREF" in heads:
+        return "pageref"
+    if "REF" in heads:
+        return "ref"
     return "unknown"
 
 
