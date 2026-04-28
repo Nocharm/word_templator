@@ -6,10 +6,26 @@ from pydantic import BaseModel, Field
 
 from app.domain.section import SectionSpec
 
-DetectedBy = Literal["word_style", "heuristic", "user"]
+DetectedBy = Literal["word_style", "outline_level", "based_on", "heuristic", "user"]
 BlockKind = Literal["paragraph", "table", "image", "field"]
 FieldKind = Literal["ref", "toc", "pageref"]
 Alignment = Literal["left", "right", "center", "justify"]
+Subtype = Literal["body", "note"]
+Warning = Literal["heading_skip"]
+CaptionLabelKind = Literal["figure", "table"]
+
+
+class CaptionRef(BaseModel):
+    """본문 paragraph 안에서 정규식으로 탐지된 캡션 참조의 메타.
+
+    `target_block_id` 는 같은 outline 안에서 동일 (label_kind, detected_number) 의
+    캡션 블록을 찾아 매핑한 결과. 매핑 실패 시 None — 출력은 평문으로 남김.
+    """
+
+    label_kind: CaptionLabelKind
+    detected_number: int
+    target_block_id: str | None = None
+    span: tuple[int, int]
 
 
 class Block(BaseModel):
@@ -22,6 +38,9 @@ class Block(BaseModel):
     detected_by: DetectedBy | None = None
     list_format: str | None = None
     alignment: Alignment | None = None
+    subtype: Subtype | None = None
+    warning: Warning | None = None
+    caption_refs: list[CaptionRef] = Field(default_factory=list)
 
     # table / image
     markdown: str | None = None
@@ -29,7 +48,7 @@ class Block(BaseModel):
     caption: str | None = None
     raw_ref: str | None = None
 
-    # field (Phase 4 자리; Phase 1에서는 placeholder만 만듦)
+    # field
     field_kind: FieldKind | None = None
     preview_text: str | None = None
     target_id: str | None = None
@@ -40,5 +59,4 @@ class Outline(BaseModel):
     job_id: str
     source_filename: str
     blocks: list[Block]
-    # 비어있으면 sectPr 정보 없음 (legacy / 단일 섹션). 렌더러가 단일 portrait 로 fallback.
     sections: list[SectionSpec] = Field(default_factory=list)

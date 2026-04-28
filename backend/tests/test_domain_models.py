@@ -69,3 +69,36 @@ def test_style_spec_minimal():
         }
     )
     assert spec.fonts.body.korean == "맑은 고딕"
+
+
+def test_block_subtype_warning_caption_refs_default_none_or_empty():
+    """신규 필드는 모두 Optional/default — 기존 outline JSON 그대로 deserialize."""
+    from app.domain.outline import Block
+
+    b = Block(id="b-1", kind="paragraph", level=0)
+    assert b.subtype is None
+    assert b.warning is None
+    assert b.caption_refs == []
+
+
+def test_caption_ref_serialization_roundtrip():
+    from app.domain.outline import Block, CaptionRef
+
+    ref = CaptionRef(
+        label_kind="figure",
+        detected_number=2,
+        target_block_id="b-abc12345",
+        span=(10, 14),
+    )
+    b = Block(id="b-2", kind="paragraph", level=0, text="그림 2 참조", caption_refs=[ref])
+    json_data = b.model_dump_json()
+    restored = Block.model_validate_json(json_data)
+    assert restored.caption_refs[0].label_kind == "figure"
+    assert restored.caption_refs[0].span == (10, 14)
+
+
+def test_detected_by_accepts_outline_level_and_based_on():
+    from app.domain.outline import Block
+
+    Block(id="b-3", kind="paragraph", level=2, detected_by="outline_level")
+    Block(id="b-4", kind="paragraph", level=1, detected_by="based_on")
