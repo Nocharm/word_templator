@@ -53,9 +53,29 @@ class PageBlock(BaseModel):
     margin_right_mm: float
 
 
+class CaptionBlock(BaseModel):
+    """캡션 라벨/구분자/누락 placeholder."""
+
+    figure_label: str = "그림"
+    table_label: str = "표"
+    separator: str = ". "
+    placeholder_missing: str = "다운로드 후 추가"
+
+
+class NoteBlock(BaseModel):
+    """노트 단락(`subtype="note"`) 시각 스타일."""
+
+    indent_pt: float = 18.0
+    italic: bool = True
+    color: str = "#555555"
+    font_size_pt: float | None = None
+
+
 class StyleSpec(BaseModel):
     fonts: FontsBlock
     paragraph: ParagraphBlock
     numbering: NumberingBlock
     table: TableBlock
     page: PageBlock
+    caption: CaptionBlock = Field(default_factory=CaptionBlock)
+    note: NoteBlock = Field(default_factory=NoteBlock)
