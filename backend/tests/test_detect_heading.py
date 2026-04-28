@@ -152,3 +152,25 @@ def test_subtitle_style_maps_to_level_2():
     level, by = detect_level(p, paragraph_index=1)
     assert level == 2
     assert by == "word_style"
+
+
+def test_outline_level_takes_precedence_over_heuristic():
+    """w:outlineLvl 값이 박혀있으면 휴리스틱보다 우선."""
+
+    class _Style:
+        name = "회사커스텀_큰제목"  # _WORD_HEADING 매칭 안 됨
+
+    class _PF:
+        alignment = None
+
+    class _Para:
+        style = _Style()
+        text = "본문같은 평범한 텍스트"  # 휴리스틱도 매칭 안 됨
+        runs = []
+        paragraph_format = _PF()
+        # outline_level 은 별도 헬퍼로 읽음 (아래 _resolve_outline_level)
+        _outline_level = 1  # 0=H1 → level 2
+
+    level, by = detect_level(_Para(), paragraph_index=10)
+    assert level == 2
+    assert by == "outline_level"

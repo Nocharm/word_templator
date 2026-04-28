@@ -1,4 +1,4 @@
-"""제목 레벨 감지 — (a) Word 스타일 → (b) 휴리스틱 → (c=0, body 폴백).
+"""제목 레벨 감지 — (a) Word 스타일 → (a2) outline level → (b) 휴리스틱 → (c=0, body 폴백).
 
 (c) 사용자 마킹은 프론트에서 처리되므로 파서 단계에선 noop.
 """
@@ -6,7 +6,7 @@
 import re
 from typing import Any, Literal
 
-DetectedBy = Literal["word_style", "heuristic"]
+DetectedBy = Literal["word_style", "outline_level", "heuristic"]
 
 _WORD_HEADING = {
     "Heading 1": 1,
@@ -88,11 +88,46 @@ def _is_very_large(paragraph: Any) -> bool:
     return False
 
 
+def _resolve_outline_level(paragraph: Any) -> int | None:
+    """`w:pPr/w:outlineLvl` 값을 읽어서 1..5 로 매핑. 없으면 None.
+
+    테스트용 FakeParagraph 는 `_outline_level` 속성으로 우회.
+    실제 docx.Paragraph 는 OOXML 직접 조회.
+    """
+    fake = getattr(paragraph, "_outline_level", None)
+    if fake is not None:
+        return min(int(fake) + 1, 5)
+
+    p = getattr(paragraph, "_p", None)
+    if p is None:
+        return None
+    from docx.oxml.ns import qn
+
+    pPr = p.find(qn("w:pPr"))
+    if pPr is None:
+        return None
+    olvl = pPr.find(qn("w:outlineLvl"))
+    if olvl is None:
+        return None
+    val = olvl.get(qn("w:val"))
+    if val is None:
+        return None
+    try:
+        return min(int(val) + 1, 5)
+    except (TypeError, ValueError):
+        return None
+
+
 def detect_level(paragraph: Any, *, paragraph_index: int | None = None) -> tuple[int, DetectedBy]:
     # (a) Word 빌트인 스타일
     style_name = getattr(paragraph.style, "name", "")
     if style_name in _WORD_HEADING:
         return _WORD_HEADING[style_name], "word_style"
+
+    # (a2) outline level — 명시적 신호
+    olvl = _resolve_outline_level(paragraph)
+    if olvl is not None and 1 <= olvl <= 5:
+        return olvl, "outline_level"
 
     text = (paragraph.text or "").strip()
 
