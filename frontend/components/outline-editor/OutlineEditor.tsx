@@ -83,7 +83,29 @@ export function OutlineEditor({ initial, onChange }: Props) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Tab" && selected.size > 0) {
+    const target = e.target as HTMLElement;
+    const tag = target.tagName;
+    const editable = target.isContentEditable;
+    if (tag === "INPUT" || tag === "TEXTAREA" || editable) return;
+
+    if (selected.size === 0) return;
+
+    // p(본문)/n(노트) 핫키 — 선택된 paragraph 를 level 0 + subtype 으로 변환.
+    if ((e.key === "p" || e.key === "n") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const subtype: "body" | "note" = e.key === "p" ? "body" : "note";
+      update({
+        ...outline,
+        blocks: outline.blocks.map((b) =>
+          selected.has(b.id) && b.kind === "paragraph"
+            ? { ...b, level: 0, subtype }
+            : b,
+        ),
+      });
+      e.preventDefault();
+      return;
+    }
+
+    if (e.key === "Tab") {
       e.preventDefault();
       const delta = e.shiftKey ? -1 : 1;
       update({
