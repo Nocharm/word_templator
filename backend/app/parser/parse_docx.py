@@ -11,6 +11,9 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from app.domain.outline import Block, Outline
+from app.domain.style_spec import StyleSpec
+from app.parser.assign_caption_numbers import assign_caption_numbers
+from app.parser.detect_caption_refs import attach_caption_refs
 from app.parser.detect_heading import detect_level
 from app.parser.extract_caption import is_caption, pick_caption
 from app.parser.extract_field import (
@@ -24,9 +27,43 @@ from app.parser.extract_field import (
 from app.parser.extract_image import ImageBlob, iter_image_blobs
 from app.parser.extract_section import build_sections
 from app.parser.extract_table import clone_table_xml, table_to_markdown
+from app.parser.validate_heading_skip import mark_heading_skips
 from app.storage.files import image_path, raw_ooxml_path
 
 _ALIGN_MAP = {0: "left", 1: "center", 2: "right", 3: "justify"}
+
+
+def _default_style_spec() -> StyleSpec:
+    """기본 StyleSpec — CaptionBlock/NoteBlock 외 필수 필드를 최소값으로 채움."""
+    return StyleSpec.model_validate(
+        {
+            "fonts": {
+                "body": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 11},
+                "heading": {
+                    "h1": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 16, "bold": True},
+                    "h2": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 14, "bold": True},
+                    "h3": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 12, "bold": True},
+                    "h4": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 11, "bold": True},
+                    "h5": {"korean": "맑은 고딕", "ascii": "Arial", "size_pt": 10, "bold": True},
+                },
+            },
+            "paragraph": {"line_spacing": 1.5, "alignment": "justify", "first_line_indent_pt": 0},
+            "numbering": {"h1": "1.", "h2": "1.1.", "h3": "1.1.1.", "list": "decimal"},
+            "table": {
+                "border_color": "#000000",
+                "border_width_pt": 0.5,
+                "header_bg": "#D9D9D9",
+                "header_bold": True,
+                "cell_font_size_pt": 10,
+            },
+            "page": {
+                "margin_top_mm": 25,
+                "margin_bottom_mm": 25,
+                "margin_left_mm": 25,
+                "margin_right_mm": 25,
+            },
+        }
+    )
 
 
 def _extract_alignment(paragraph: Paragraph) -> str | None:
@@ -256,5 +293,13 @@ def parse_docx(
 
     pairs = _collapse_consecutive_empty_paired(pairs)
     blocks = [b for b, _ in pairs]
+
+    # 파이프라인 후처리: heading skip 마킹 → 캡션 번호 → 본문 참조 부착
+    blocks = mark_heading_skips(blocks)
+    blocks = assign_caption_numbers(blocks, spec=_default_style_spec())
+    blocks = attach_caption_refs(blocks)
+
+    # pairs 의 block 참조를 후처리된 blocks 로 교체 (sections 빌드에 block.id 사용)
+    pairs = [(blocks[i], idx) for i, (_, idx) in enumerate(pairs)]
     sections = build_sections(doc, pairs, user_id=user_id, job_id=job_id)
     return Outline(job_id="", source_filename=filename, blocks=blocks, sections=sections)

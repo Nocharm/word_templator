@@ -12,6 +12,21 @@ from tests.fixtures.build_table_image_sample import build_sample_with_table_and_
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
+def _blank_png_path() -> str:
+    """1×1 투명 PNG. 테스트 fixture 에 이미 있으면 그 경로 반환."""
+    p = Path(__file__).parent / "fixtures" / "blank.png"
+    if not p.exists():
+        # 1×1 흰색 PNG (RGB, 8bit)
+        p.write_bytes(
+            bytes.fromhex(
+                "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de"
+                "0000000c49444154789c63f8ffff3f0005fe02fe0def46b80000000049454e44"
+                "ae426082"
+            )
+        )
+    return str(p)
+
+
 def test_parse_simple_headings_and_body():
     outline = parse_docx(
         (FIXTURES / "sample_simple.docx").read_bytes(), filename="sample_simple.docx"
@@ -164,3 +179,39 @@ def test_parse_docx_phase4_no_field_no_save(tmp_path, monkeypatch):
         if b.kind == "paragraph":
             assert b.raw_xml_ref is None
             assert b.field_kind is None
+
+
+def test_parse_pipeline_marks_heading_skip_and_assigns_captions():
+    """파이프라인 통합: heading skip warning + 캡션 자동 번호 + 본문 ref 부착."""
+    import io
+
+    from docx import Document
+
+    from app.parser.parse_docx import parse_docx
+
+    doc = Document()
+    doc.add_paragraph("큰 제목", style="Heading 1")
+    doc.add_paragraph("아주 깊은 제목", style="Heading 3")  # H1 → H3 skip
+    doc.add_paragraph("아래 그림 1 을 참조한다.")
+    doc.add_picture(_blank_png_path())  # img-1
+    doc.add_table(rows=2, cols=2)  # tbl-1, no caption
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    outline = parse_docx(buf.getvalue(), filename="t.docx")
+
+    headings = [b for b in outline.blocks if b.kind == "paragraph" and b.level >= 1]
+    assert any(b.warning == "heading_skip" for b in headings if b.level == 3)
+
+    image_blocks = [b for b in outline.blocks if b.kind == "image"]
+    table_blocks = [b for b in outline.blocks if b.kind == "table"]
+    assert image_blocks[0].caption.startswith("그림 1")
+    assert table_blocks[0].caption.startswith("표 1")
+
+    paragraph_with_ref = next(
+        b for b in outline.blocks if b.kind == "paragraph" and "그림 1" in (b.text or "")
+    )
+    assert any(
+        r.label_kind == "figure" and r.target_block_id == image_blocks[0].id
+        for r in paragraph_with_ref.caption_refs
+    )
