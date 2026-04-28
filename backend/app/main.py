@@ -10,7 +10,13 @@ from app.api.feedback import router as feedback_router
 from app.api.images import router as images_router
 from app.api.jobs import router as jobs_router
 from app.api.templates import router as templates_router
-from app.db.seed import seed_builtin_templates, seed_demo_accounts
+from app.db.models import User
+from app.db.seed import (
+    DEMO_USER_EMAIL,
+    seed_builtin_templates,
+    seed_demo_accounts,
+    seed_demo_job,
+)
 from app.db.session import SessionLocal
 from app.settings import get_settings
 
@@ -23,6 +29,9 @@ async def lifespan(app: FastAPI):
     try:
         seed_builtin_templates(db)
         seed_demo_accounts(db)
+        demo_user = db.query(User).filter_by(email=DEMO_USER_EMAIL).one_or_none()
+        if demo_user is not None:
+            seed_demo_job(db, demo_user.id)
     finally:
         db.close()
     yield
