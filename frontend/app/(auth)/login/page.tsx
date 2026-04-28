@@ -20,6 +20,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await api.login(email, password);
+      router.refresh();
       router.push("/dashboard");
     } catch (err) {
       setError((err as Error).message);
