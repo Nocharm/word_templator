@@ -15,6 +15,9 @@ from app.settings import get_settings
 router = APIRouter(prefix="/auth", tags=["auth"])
 _settings = get_settings()
 
+# NOTE: SSO insertion point — settings.auth_provider == "oidc" 분기는
+# 사내 IdP 결정 후 추가. 현재는 "local" (email/pw + JWT 쿠키) 만 동작.
+
 # 임시 — OAuth 도입 전까지만 사용. RFC strict 검증 대신 "@ + 도메인" 만 확인.
 _LOOSE_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
