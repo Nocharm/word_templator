@@ -205,8 +205,10 @@ def test_parse_pipeline_marks_heading_skip_and_assigns_captions():
 
     image_blocks = [b for b in outline.blocks if b.kind == "image"]
     table_blocks = [b for b in outline.blocks if b.kind == "table"]
-    assert image_blocks[0].caption.startswith("그림 1")
-    assert table_blocks[0].caption.startswith("표 1")
+    img_cap = image_blocks[0].caption
+    tbl_cap = table_blocks[0].caption
+    assert img_cap is not None and img_cap.startswith("그림 1")
+    assert tbl_cap is not None and tbl_cap.startswith("표 1")
 
     paragraph_with_ref = next(
         b for b in outline.blocks if b.kind == "paragraph" and "그림 1" in (b.text or "")
