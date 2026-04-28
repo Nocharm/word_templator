@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.domain.section import SectionSpec
+
 DetectedBy = Literal["word_style", "heuristic", "user"]
 BlockKind = Literal["paragraph", "table", "image", "field"]
 FieldKind = Literal["ref", "toc", "pageref"]
@@ -38,3 +40,5 @@ class Outline(BaseModel):
     job_id: str
     source_filename: str
     blocks: list[Block]
+    # 비어있으면 sectPr 정보 없음 (legacy / 단일 섹션). 렌더러가 단일 portrait 로 fallback.
+    sections: list[SectionSpec] = Field(default_factory=list)

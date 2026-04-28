@@ -1,13 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useT } from "@/components/settings-provider";
-import type { Block, Outline } from "@/lib/types";
+import type { Block, Outline, SectionSpec } from "@/lib/types";
 import { ParagraphBlock } from "./ParagraphBlock";
 import { TableBlock } from "./TableBlock";
 import { ImageBlock } from "./ImageBlock";
 import { FieldBlock } from "./FieldBlock";
+import { SectionDivider } from "./SectionDivider";
 
 interface Props {
   initial: Outline;
@@ -103,44 +104,67 @@ export function OutlineEditor({ initial, onChange }: Props) {
   );
 
   // 본문(level=0) 블록은 가장 가까운 선행 헤딩의 레벨을 부모로 인식 → 인덴트·연결선 상속
-  function renderBlocks(blocks: Block[]) {
-    let parentLevel = 0;
-    return blocks.map((b) => {
-      if (b.kind === "paragraph" && b.level >= 1) parentLevel = b.level;
-      // 비-단락(표/이미지/필드)도 부모 헤딩 들여쓰기를 따라가도록 wrapper indent 적용.
-      const nonParagraphIndent =
-        ["ml-0", "ml-0", "ml-4", "ml-10", "ml-16", "ml-20"][parentLevel] ?? "ml-20";
+  function renderBlock(b: Block, parentLevel: number) {
+    const nonParagraphIndent =
+      ["ml-0", "ml-0", "ml-4", "ml-10", "ml-16", "ml-20"][parentLevel] ?? "ml-20";
 
-      if (b.kind === "paragraph") {
-        return (
-          <ParagraphBlock
-            key={b.id}
-            block={b}
-            isSelected={selected.has(b.id)}
-            parentLevel={parentLevel}
-            headingNumber={headingNumbers.get(b.id) ?? null}
-            onSelect={handleSelect}
-          />
-        );
-      }
-      if (b.kind === "table") {
-        return (
-          <div key={b.id} className={nonParagraphIndent}>
-            <TableBlock block={b} />
-          </div>
-        );
-      }
-      if (b.kind === "image") {
-        return (
-          <div key={b.id} className={nonParagraphIndent}>
-            <ImageBlock block={b} />
-          </div>
-        );
-      }
+    if (b.kind === "paragraph") {
+      return (
+        <ParagraphBlock
+          key={b.id}
+          block={b}
+          isSelected={selected.has(b.id)}
+          parentLevel={parentLevel}
+          headingNumber={headingNumbers.get(b.id) ?? null}
+          onSelect={handleSelect}
+        />
+      );
+    }
+    if (b.kind === "table") {
       return (
         <div key={b.id} className={nonParagraphIndent}>
-          <FieldBlock block={b} />
+          <TableBlock block={b} />
         </div>
+      );
+    }
+    if (b.kind === "image") {
+      return (
+        <div key={b.id} className={nonParagraphIndent}>
+          <ImageBlock block={b} />
+        </div>
+      );
+    }
+    return (
+      <div key={b.id} className={nonParagraphIndent}>
+        <FieldBlock block={b} />
+      </div>
+    );
+  }
+
+  function renderBody(blocks: Block[], sections: SectionSpec[] | undefined) {
+    // 섹션 정보가 없거나 단일 섹션이면 구분선 생략 — 평소처럼 평탄 렌더.
+    if (!sections || sections.length <= 1) {
+      let parentLevel = 0;
+      return blocks.map((b) => {
+        if (b.kind === "paragraph" && b.level >= 1) parentLevel = b.level;
+        return renderBlock(b, parentLevel);
+      });
+    }
+
+    // 섹션별로 묶어 SectionDivider + 그 섹션에 속한 blocks 렌더.
+    const blocksById = new Map(blocks.map((b) => [b.id, b]));
+    return sections.map((section, sIdx) => {
+      let parentLevel = 0;
+      return (
+        <Fragment key={section.id}>
+          <SectionDivider section={section} index={sIdx} isFirst={sIdx === 0} />
+          {section.block_ids.map((id) => {
+            const b = blocksById.get(id);
+            if (!b) return null;
+            if (b.kind === "paragraph" && b.level >= 1) parentLevel = b.level;
+            return renderBlock(b, parentLevel);
+          })}
+        </Fragment>
       );
     });
   }
@@ -204,7 +228,7 @@ export function OutlineEditor({ initial, onChange }: Props) {
           count > 0 ? "border-primary/40" : "border-border",
         )}
       >
-        {renderBlocks(outline.blocks)}
+        {renderBody(outline.blocks, outline.sections)}
       </div>
     </div>
   );

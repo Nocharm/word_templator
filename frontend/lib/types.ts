@@ -16,10 +16,31 @@ export interface Block {
   preview_text?: string | null;
 }
 
+export type Orientation = "portrait" | "landscape";
+
+export interface SectionSpec {
+  id: string;
+  orientation: Orientation;
+  page_width_mm: number;
+  page_height_mm: number;
+  margin_top_mm: number;
+  margin_bottom_mm: number;
+  margin_left_mm: number;
+  margin_right_mm: number;
+  header_default_ref?: string | null;
+  header_first_ref?: string | null;
+  header_even_ref?: string | null;
+  footer_default_ref?: string | null;
+  footer_first_ref?: string | null;
+  footer_even_ref?: string | null;
+  block_ids: string[];
+}
+
 export interface Outline {
   job_id: string;
   source_filename: string;
   blocks: Block[];
+  sections?: SectionSpec[];
 }
 
 export interface Template {
