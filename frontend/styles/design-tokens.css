@@ -1,0 +1,156 @@
+/*
+ * design-tokens.css — Word Templator (Apple iOS 스타일).
+ *
+ * Concept: 05_apple (light + dark).
+ * 프로젝트 간 토큰 이름·스케일은 동일, 색·폰트만 컨셉화.
+ */
+
+:root {
+  /* ── Concept Color (Apple iOS Light) ── */
+  --color-primary: #007AFF;
+  --color-primary-hover: #0066D6;
+  --color-secondary: #F2F2F7;
+  --color-accent: #5AC8FA;
+
+  /* ── Semantic Colors ── */
+  --color-bg: #FFFFFF;
+  --color-surface: #F2F2F7;
+  --color-surface-elevated: #FFFFFF;
+  --color-text: #000000;
+  --color-text-muted: #8E8E93;
+  --color-border: #D1D1D6;
+  --color-border-strong: #C6C6C8;
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-danger: #FF3B30;
+  --color-info: #007AFF;
+
+  /* ── Typography (SF / Apple SD Gothic Neo) ── */
+  --font-heading: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --fs-2xl: 36px;
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.5;
+  --lh-loose: 1.75;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ── Spacing (4px grid) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius (Apple은 큼지막) ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  /* ── Shadow (subtle) ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
+
+  /* ── Breakpoints ── */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* ── Z-index ── */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-modal: 20;
+  --z-toast: 30;
+}
+
+/* Dark theme — 두 경로:
+   1) [data-theme="dark"]: 사용자가 명시적으로 선택
+   2) [data-theme="system"] + prefers-color-scheme: dark: OS 따라감
+   토큰 이름은 동일, 값만 교체. */
+:root[data-theme="dark"],
+:root[data-theme="system"][data-theme-resolved="dark"] {
+  --color-primary: #0A84FF;
+  --color-primary-hover: #409CFF;
+  --color-secondary: #1C1C1E;
+  --color-accent: #64D2FF;
+
+  --color-bg: #0A0A0B;
+  --color-surface: #1C1C1E;
+  --color-surface-elevated: #2C2C2E;
+  --color-text: #FFFFFF;
+  --color-text-muted: #8E8E93;
+  --color-border: #38383A;
+  --color-border-strong: #48484A;
+  --color-info: #0A84FF;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.50);
+}
+
+/* data-theme 미지정 (예: 초기 렌더 fallback) — OS 다크모드 따름 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-primary: #0A84FF;
+    --color-primary-hover: #409CFF;
+    --color-secondary: #1C1C1E;
+    --color-accent: #64D2FF;
+
+    --color-bg: #0A0A0B;
+    --color-surface: #1C1C1E;
+    --color-surface-elevated: #2C2C2E;
+    --color-text: #FFFFFF;
+    --color-text-muted: #8E8E93;
+    --color-border: #38383A;
+    --color-border-strong: #48484A;
+    --color-info: #0A84FF;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.50);
+  }
+}
+
+/* Font scale — 루트 font-size 만 바꿔 Tailwind rem 단위가 전체 cascade.
+   sm=14px (0.875×), md=16px (기본), lg=18px (1.125×). --fs-* 토큰도 함께 갱신. */
+:root[data-font-scale="sm"] {
+  font-size: 14px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 14px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 32px;
+}
+
+:root[data-font-scale="md"] {
+  font-size: 16px;
+}
+
+:root[data-font-scale="lg"] {
+  font-size: 18px;
+  --fs-xs: 13px;
+  --fs-sm: 16px;
+  --fs-md: 18px;
+  --fs-lg: 22px;
+  --fs-xl: 32px;
+  --fs-2xl: 40px;
+}

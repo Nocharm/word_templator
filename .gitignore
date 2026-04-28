@@ -1,6 +1,9 @@
-# Claude Code
+# Claude Code (local-only state — 공유 설정은 .claude/settings.json 으로 커밋)
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/projects/
+.claude/todos/
+.claude/cache/
 
 # Env / Secrets
 .env
@@ -16,17 +19,34 @@ Thumbs.db
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+htmlcov/
+.coverage
+.coverage.*
 
 # Node
 node_modules/
 dist/
+out/
 .next/
 .turbo/
+*.tsbuildinfo
+.eslintcache
+coverage/
+
+# Data volumes
+/data/
 
 # Editor
 .vscode/
 .idea/
 *.swp
+*.log
+
+# Test fixtures
+# 새로 생성되는 .docx 는 자동 무시 (대부분 build_*.py 로 재생성 가능).
+# 작은 샘플 일부는 의도적으로 추적 (sample_simple.docx 등) — git ls-files 로 확인.
+backend/tests/fixtures/*.docx

@@ -6,26 +6,35 @@
 
 ## Project
 
-<한 줄 프로젝트 설명 — 이 저장소가 무엇이고 누가 쓰는지>
+Word(.docx) 문서를 빌트인 템플릿(StyleSpec) 기준으로 표·문단·번호·폰트를 표준화해 다시 .docx로 출력하는 풀스택 웹 도구. 사용자 인증·히스토리·커스텀 템플릿 지원.
 
 ---
 
 ## Commands
 
 ```bash
-# Build
-<your build command here>
+# Backend (cd backend)
+python3.11 -m venv .venv && . .venv/bin/activate
+uv pip install -r requirements-dev.txt        # deps (fallback: pip install)
+.venv/bin/pytest                              # full suite (SQLite in-memory) — 시스템 pytest 사용 X
+.venv/bin/pytest tests/test_parse.py::test_xxx -v   # single test
+.venv/bin/ruff check . && .venv/bin/ruff format .   # lint + format
+.venv/bin/mypy app                            # 타입 체크 (strict)
+uvicorn app.main:app --reload --port 8000     # dev server
 
-# Test
-<your test command here>              # full suite
-<your single test command here>       # single test
+# 데모 SOP .docx 재빌드 (코드/구조 변경 시)
+python -m scripts.build_demo_sop
 
-# Lint / Format
-<your lint command here>
-<your format command here>
+# Frontend (cd frontend)
+npm install --legacy-peer-deps
+npm test                                      # vitest run (jsdom + @testing-library/react)
+npm run lint
+npx tsc --noEmit                              # 타입 체크 (커밋 전)
+npm run dev                                   # http://localhost:3000
 
-# Dev server
-<your dev server command here>
+# Compose (전체 스택)
+cp .env.example .env && $EDITOR .env          # 시크릿 채우기
+docker compose -f infra/docker-compose.yml up -d
 ```
 
 ---

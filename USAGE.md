@@ -1,283 +1,145 @@
-# Claude Code 템플릿 사용 가이드
+# Word Templator 사용 가이드
 
-이 가이드는 `CLAUDE.md` + `rules/*.md` 허브 구조 템플릿을 새 프로젝트에서 사용하는 방법을 설명한다.
-
----
-
-## 파일 구성
-
-```
-CLAUDE.md                       # 허브. Project 설명 + Commands + @import 목록
-rules/
-  comments.md                   # 주석 규칙
-  config.md                     # 설정 관리
-  docker.md                     # Docker
-  testing.md                    # 테스트
-  git.md                        # Git 컨벤션
-  security.md                   # 보안
-  dependencies.md               # 의존성 관리
-  sync-checklist.md             # 코드 변경 동기화 체크리스트
-  error-handling.md             # 에러 처리
-  languages/
-    python.md                   # Python 전용 규칙
-    typescript.md               # TypeScript/JavaScript 전용 규칙
-    nextjs.md                   # Next.js (App Router) 전용 규칙
-  styling/
-    css.md                      # CSS / Tailwind 공통 규칙 + 토큰 강제
-templates/
-  design-tokens.css             # vanilla CSS / CSS Modules 디자인 토큰
-  tailwind.theme.ts             # Tailwind 디자인 토큰 (같은 스키마)
-```
-
-**관계:**
-- `CLAUDE.md` 하단에 `@rules/<file>.md` 형식의 줄이 있다.
-- 이것은 Claude Code 의 import 기능으로, 해당 파일의 내용을 자동으로 읽어온다.
-- 일반 규칙은 `rules/` 직속, 언어/프레임워크는 `rules/languages/`, 스타일링은 `rules/styling/` 에 있다.
-- `templates/` 는 `@import` 대상이 아니다 — 프로젝트 시작 시 실제 파일로 복사해서 값을 채우는 **파일 템플릿**이다.
+`.docx` 업로드 → 표준 템플릿으로 정규화 → 다운로드 전체 플로우와 에디터 단축키·캡션 자동 번호 동작을 설명한다.
 
 ---
 
-## Step 1. 파일 복사
+## 전체 플로우
 
-새 프로젝트 폴더에 템플릿 전체를 복사한다.
+1. **로그인** — `http://localhost/login`. 시연용 계정은 `README.md` 참조.
+2. **업로드** — `/`(홈) 에서 `.docx` 파일을 드래그 앤 드롭 또는 클릭 선택.
+3. **템플릿 선택** — 빌트인 StyleSpec 또는 직접 만든 템플릿 중 선택.
+4. **아웃라인 검토** (`/editor/[jobId]`) — 파서가 추출한 헤딩·본문·표·이미지·캡션을 보면서 필요한 곳을 수정.
+5. **미리보기 + diff** (`/editor/[jobId]/preview`) — 원본 vs 정규화 결과 좌우 비교.
+6. **다운로드** — 정규화된 `.docx` 받기. Word 에서 열고 `F9` 키로 캡션/본문 참조 일괄 갱신 (아래 "다운로드 후 처리" 참조).
 
-```bash
-# Python 백엔드 프로젝트
-cp    /path/to/template/CLAUDE.md     ~/new-project/CLAUDE.md
-cp -r /path/to/template/rules         ~/new-project/rules
-cp    /path/to/template/.gitignore    ~/new-project/.gitignore
-
-# TypeScript 프론트엔드 프로젝트 — 동일한 방식으로 복사
-# Python + TypeScript 풀스택 프로젝트 — 동일한 방식으로 복사
-```
-
-또는 템플릿 레포를 통째로 clone 해도 된다.
-
-```bash
-git clone <template-repo-url> ~/new-project
-cd ~/new-project
-rm -rf .git                      # 템플릿의 git 이력 제거
-git init                         # 새 프로젝트의 git 시작
-```
-
-> **중요:** 허브 파일은 반드시 `CLAUDE.md` 라는 이름이어야 한다. Claude Code 는 프로젝트 루트의 `CLAUDE.md` 를 자동으로 읽는다.
+여러 파일을 한 번에 처리하려면 `/batch` 페이지에서 멀티 업로드 + 병렬 렌더 + ZIP 다운로드.
 
 ---
 
-## Step 2. 사용하지 않는 언어 / 프론트엔드 import 제거
+## 아웃라인 에디터 단축키
 
-`CLAUDE.md` 맨 아래를 확인한다.
+블록(단락)을 클릭해 선택 후 누른다. `<input>`/`<textarea>`/contentEditable 에 포커스가 있으면 단축키는 발동하지 않는다.
 
-```markdown
-## Language-Specific Rules
+| 키 | 동작 |
+|---|---|
+| `p` | 선택한 단락을 **본문** 으로 (`level=0`, `subtype="body"`) |
+| `n` | 선택한 단락을 **노트** 로 (`level=0`, `subtype="note"` — 들여쓰기 + 이탤릭 + 좌측 줄 시각) |
+| `Tab` | 선택한 단락의 헤딩 레벨 +1 (단, 직전 헤딩보다 2단계 이상 깊어지면 차단 + 경고) |
+| `Shift+Tab` | 선택한 단락의 헤딩 레벨 −1 (level 0 까지) |
 
-@rules/languages/python.md
-@rules/languages/typescript.md
+### 헤딩 위계 차단 규칙
 
-## Frontend Rules (프론트엔드 프로젝트만)
-
-@rules/languages/nextjs.md
-@rules/styling/css.md
-```
-
-**Language-Specific 섹션**
-- Python 만: `@rules/languages/typescript.md` 삭제
-- TypeScript 만: `@rules/languages/python.md` 삭제
-- 둘 다: 두 줄 유지
-
-**Frontend Rules 섹션**
-- Next.js 프로젝트: 두 줄 다 유지
-- 다른 프론트엔드 (Vite React 등): `@rules/languages/nextjs.md` 만 삭제
-- 백엔드·CLI 등 프론트엔드 아님: 이 섹션을 통째로 삭제
-
-삭제하지 않아도 에러는 나지 않지만, 쓰지 않는 규칙은 컨텍스트를 차지한다.
-
-> 규칙 파일 자체를 지울 필요는 없다. `@import` 줄만 제거하면 Claude 컨텍스트에서 빠진다.
+- 직전 헤딩이 H1 이면 다음 헤딩은 최대 H2.
+- 사용자가 `Tab` 으로 H1→H3 처럼 만들려 하면 **차단** 되고 토스트로 안내 (`editor.headingSkipBlocked`).
+- 원본 문서가 이미 H1→H3 같은 점프를 포함하고 있으면, 해당 단락은 노란 좌측 줄로 표시되고 **한 단계 끌어올리기** 버튼이 노출된다. 클릭 한 번으로 H3→H2 로 정정.
+- 자동 보정은 하지 않는다 — 원본 의도를 보존하고 사용자가 결정.
 
 ---
 
-## Step 3. Commands 섹션 채우기
+## 캡션 자동 번호
 
-`CLAUDE.md` 의 `Commands` 섹션에 `<placeholder>` 가 있다. 프로젝트의 실제 명령어로 교체한다.
+파서가 표/이미지를 위에서부터 순서대로 스캔해 캡션 prefix 를 부여한다.
 
-**교체 전:**
-```bash
-# Build
-<your build command here>
+### 동작 규칙
 
-# Test
-<your test command here>              # full suite
-<your single test command here>       # single test
+1. **캡션 누락** — `그림 N. 다운로드 후 추가` / `표 N. 다운로드 후 추가` 자동 합성. 다운로드한 .docx 를 Word 에서 열어 placeholder 텍스트를 실제 제목으로 교체.
+2. **사용자 제목만 적힘** (예: `장비 설치도`) — `그림 1. 장비 설치도` 처럼 위치 기반 prefix 추가.
+3. **사용자가 prefix 까지 적었지만 번호가 다름** (예: `그림 99. 잘못된 번호`) — 위치 기반으로 정정 (`그림 1. 잘못된 번호`).
+4. **그림 카운터와 표 카운터는 독립** — `이미지/표/이미지/표` 순서면 `그림 1 / 표 1 / 그림 2 / 표 2`.
 
-# Lint / Format
-<your lint command here>
-<your format command here>
+### 라벨/구분자 커스터마이즈
 
-# Dev server
-<your dev server command here>
+`StyleSpec.caption` 필드로 회사·언어별 라벨 변경:
+
+```json
+{
+  "caption": {
+    "figure_label": "Figure",
+    "table_label": "Table",
+    "separator": ": ",
+    "placeholder_missing": "Add after download"
+  }
+}
 ```
 
-**교체 후 예시 — Python FastAPI:**
-```bash
-# Build
-uv pip install -r requirements.txt            # fallback: pip install -r requirements.txt
-
-# Test
-pytest tests/ -v                              # full suite
-pytest tests/test_api.py::test_health -v      # single test
-
-# Lint / Format
-ruff check .
-black .
-
-# Dev server
-uvicorn app.main:app --reload
-```
-
-**교체 후 예시 — Next.js:**
-```bash
-# Build
-npm install && npm run build
-
-# Test
-npm test                              # full suite
-npm test -- --testPathPattern=auth    # single test
-
-# Lint / Format
-npm run lint
-npx prettier --write .
-
-# Dev server
-npm run dev
-```
-
-**교체 후 예시 — Python + Docker:**
-```bash
-# Build
-uv pip install -r requirements.txt            # fallback: pip install -r requirements.txt
-docker-compose build
-
-# Test
-pytest tests/ -v
-
-# Lint / Format
-ruff check .
-black .
-
-# Dev server (로컬)
-uvicorn app.main:app --reload
-
-# Dev server (Docker)
-docker-compose up --build
-```
-
-**이 섹션이 중요한 이유:** Claude Code 는 이 명령어를 보고 테스트 실행·빌드 확인 등을 수행한다. 올바른 명령어가 없으면 Claude 가 잘못된 명령어를 추측해 실행할 수 있다.
+→ 출력: `Figure 1: diagram` / `Table 1: cost`.
 
 ---
 
-## Step 4. 프론트엔드 프로젝트: 디자인 토큰 채우기
+## 본문 참조 동기화 + Word SEQ/REF 필드
 
-프론트엔드 프로젝트라면 스타일 작성 전에 반드시 토큰 템플릿을 먼저 채운다.
+본문 단락에 `그림 1`, `표 2`, `Figure 3`, `Table 4` 같은 표현이 있으면 파서가 해당 위치의 캡션 블록과 자동 매핑한다.
 
-**Tailwind CSS 사용 시 — `templates/tailwind.theme.ts`:**
-1. 프로젝트 루트에 복사
-2. `colors.primary`, `colors.secondary`, `colors.accent`, `fontFamily.heading`, `fontFamily.body` 의 `<HEX>` / `<...font>` 를 프로젝트 값으로 교체
-3. `tailwind.config.ts` 의 `theme.extend` 에 `themeExtend` 를 병합
+### 출력 시점
 
-**vanilla CSS / CSS Modules — `templates/design-tokens.css`:**
-1. `styles/design-tokens.css` 로 복사
-2. `--color-primary` 계열, `--font-heading`, `--font-body` 의 `<HEX>` / `<...font>` 를 프로젝트 값으로 교체
-3. `app/layout.tsx` (또는 루트 CSS) 에서 import
+- **앱 안 미리보기** — 평문 그대로 표시 (사용자가 편집하는 동안 라이브 갱신).
+- **다운로드한 .docx** — Word 의 진짜 cross-reference 필드로 emit:
+  - 캡션은 `SEQ Figure \* ARABIC` / `SEQ Table \* ARABIC` 필드와 북마크 (`_Ref_figure_<block_id>`).
+  - 본문 참조는 `REF _Ref_figure_<block_id> \h` 필드.
 
-**절대 바꾸지 말 것 (프로젝트 간 통일):**
-- 토큰 이름 (`primary`, `space-4`, `radius-md`, `shadow-lg` 등)
-- Spacing / font size / radius / shadow / z-index 스케일
+### 다운로드 후 처리
 
-자세한 규칙은 `rules/styling/css.md` 참고.
+Word 가 열릴 때 캐시된 번호로 표시되지만, 표/이미지를 추가·삭제·재정렬해도 자동 갱신은 안 된다. **`F9` 키** 한 번이면 모든 SEQ/REF 필드가 일괄 재계산된다 (Word 표준 동작).
 
----
+`F9` 가 작동하지 않는다면:
+- 본문 전체 선택 → 우클릭 → "필드 업데이트" (Update Fields).
+- 또는 인쇄 미리보기 진입 시 자동 갱신.
 
-## Step 5. 프로젝트 특화 규칙 추가 (선택)
+### 매핑 실패 케이스
 
-범용 규칙 외에 프로젝트에만 해당하는 규칙이 있다면 두 가지 방법이 있다.
-
-**방법 A — `CLAUDE.md` 에 직접 추가:**
-
-`## Rules` 블록 위쪽에 프로젝트 전용 섹션을 만든다.
-
-```markdown
-## Project Structure
-
-```
-src/
-├── api/          # API 라우터. 비즈니스 로직 금지.
-├── services/     # 비즈니스 로직 담당.
-├── models/       # DB 모델 정의.
-└── utils/        # 공용 유틸리티.
-```
-
-## Naming Conventions
-- API 엔드포인트 함수: get_*, create_*, update_*, delete_*
-- 서비스 함수: process_*, validate_*, calculate_*
-
-## Gotchas
-- Redis 연결은 반드시 connection pool 을 사용할 것
-- 파일 업로드 크기 제한: 50MB (nginx 와 앱 양쪽에서 설정)
-```
-
-**방법 B — `rules/` 에 새 파일 생성:**
-
-규칙이 길거나 여러 개라면 `rules/project-structure.md` 같은 파일을 만들고, `CLAUDE.md` 의 `## Rules` 목록에 `@rules/project-structure.md` 를 추가한다.
-
-프로젝트별로 계속 커지는 규칙은 B 방법이 낫다. 허브가 계속 얇게 유지된다.
+본문에 `그림 99` 라고 적었는데 그런 캡션이 실제로 없으면 매핑 실패. 출력은 평문으로 남고 Word 안에서 빨간 줄로 표시되지 않는다. 미리보기 화면의 diff 뷰에서 "그림 99" 가 어떤 블록에도 매핑되지 않은 것을 확인 후 본문을 수정.
 
 ---
 
-## Step 6. git 에 커밋
+## 노트 단락 (`subtype="note"`)
 
-`CLAUDE.md`, `rules/`, `.gitignore` 는 git 에 커밋한다. 팀원들도 같은 규칙을 적용받을 수 있도록 공유하는 것이 권장된다.
+본문 중 보충 설명·주의 문구는 노트 단락으로 만들면 시각적으로 구분된다.
 
-```bash
-git add CLAUDE.md rules/ .gitignore
-git commit -m "docs: add Claude Code project rules"
-```
-
-본인만 사용하고 팀과 공유하지 않을 규칙이 있다면 `CLAUDE.local.md` 파일에 작성한다. `.gitignore` 에 이미 포함되어 있다.
+- 키: `n` (선택 단락에 적용).
+- 시각: 들여쓰기 + 이탤릭 + 좌측 가로 줄 (`StyleSpec.note.indent_pt` / `italic` / `color` 로 커스터마이즈).
+- level 은 강제로 0 (헤딩이 아닌 본문 변형).
+- 다시 일반 본문으로 되돌리려면 `p`.
 
 ---
 
-## 전체 체크리스트
+## 템플릿 (StyleSpec) 커스터마이즈
 
-- [ ] 1. 템플릿 파일(`CLAUDE.md`, `rules/`, `.gitignore`)을 프로젝트 루트에 복사
-- [ ] 2. 사용하지 않는 `@rules/languages/*.md`, `@rules/styling/*.md` 줄 삭제
-- [ ] 3. `CLAUDE.md` 의 `Commands` 섹션을 실제 명령어로 교체
-- [ ] 4. (프론트엔드) `templates/tailwind.theme.ts` 또는 `templates/design-tokens.css` 복사 후 토큰 값 채우기
-- [ ] 5. (선택) 프로젝트 특화 규칙 추가 (`CLAUDE.md` 직접 또는 `rules/` 새 파일)
-- [ ] 6. git 에 커밋
+`/templates` 페이지에서 신규 템플릿 생성 또는 기존 편집. 주요 필드:
+
+| 블록 | 의미 |
+|---|---|
+| `fonts` | body 폰트와 H1..H5 폰트(family, size_pt) |
+| `paragraph` | 줄 간격, 들여쓰기, 단락 위·아래 간격 |
+| `numbering` | 헤딩 번호 prefix·suffix·들여쓰기 |
+| `table` | 테두리 색·굵기, 헤더 배경색, 헤더 bold, 셀 폰트 사이즈 |
+| `page` | 페이지 마진(상하좌우, pt) |
+| `caption` | 캡션 라벨/구분자/누락 placeholder (위 "캡션 자동 번호" 참조) |
+| `note` | 노트 단락 시각(들여쓰기, 이탤릭, 색) |
 
 ---
 
-## FAQ
+## 자주 묻는 질문
 
-**Q: `CLAUDE.md` 파일 위치가 프로젝트 루트가 아니면?**
-A: Claude Code 는 프로젝트 루트의 `CLAUDE.md` 만 자동으로 읽는다. 또는 `.claude/CLAUDE.md` 에 넣어도 된다.
+**Q. 다운로드한 .docx 의 그림 1, 표 1 이 모두 "1" 로 표시됩니다. 갱신이 안 되나요?**
+A. Word 의 SEQ/REF 필드는 처음 열 때 캐시값을 표시한다. `F9` 또는 본문 전체 선택 → "필드 업데이트" 로 갱신.
 
-**Q: 규칙 파일 이름을 바꿔도 되나?**
-A: 네. 단, `CLAUDE.md` 하단의 `@import` 경로도 함께 바꿔야 한다.
-예: `@rules/python.md` → `@rules/languages/python-strict.md`
+**Q. 회사 문서가 헤딩을 빌트인 스타일(`Heading 1`)이 아닌 자체 스타일(`회사_제목1` 등)로 작성합니다. 인식되나요?**
+A. 그 스타일이 Word 의 `Heading 1` 등을 `basedOn` 으로 가지면 자동으로 같은 레벨로 매핑된다. `basedOn` 체인이 없어도 단락에 `w:outlineLvl` 이 박혀있으면 인식.
 
-**Q: 규칙이 너무 많으면 Claude 가 무시하나?**
-A: Anthropic 공식 권장은 파일당 200줄 이하, 전체 규칙 150개 이하다. 넘으면 준수율이 균일하게 하락한다. 허브 구조 덕분에 `rules/` 로 분리되어 있지만, 총량 자체가 너무 커지지 않도록 관리할 것.
+**Q. 한 페이지를 가로(landscape) 로 두는 SOP 가 있는데 변환 후에도 유지되나요?**
+A. 네. 원본의 섹션 방향 전환과 머리말/꼬리말은 모두 보존된다.
 
-**Q: 팀원이 다른 AI 도구(Cursor, Copilot)를 쓰면?**
-A: `CLAUDE.md` 는 Claude Code 전용이다. 다른 도구는 각자의 설정 파일을 사용한다 (Cursor: `.cursorrules`, Copilot: `.github/copilot-instructions.md`). 내용은 동일하게 작성하되 파일명·형식을 맞추면 된다.
+**Q. 한 번에 여러 파일을 처리하고 싶어요.**
+A. `/batch` 에서 멀티 업로드. 각 파일이 병렬로 렌더되고 결과를 ZIP 으로 다운로드.
 
-**Q: `CLAUDE.md` 와 `.claude/settings.json` 의 차이는?**
-A:
-- `CLAUDE.md` = "이렇게 해줘" (권장 사항, Claude 가 판단해서 따름)
-- `settings.json` = "이것만 허용" (권한 설정, 시스템이 강제)
+**Q. 한국어 외에 영문 문서도 처리되나요?**
+A. 처리된다. `Title`/`Subtitle`/`Heading 1..5` 영문 스타일도 인식, 캡션 라벨도 `StyleSpec.caption` 으로 `Figure`/`Table` 로 변경 가능.
 
-예: "pytest 를 허용"은 `settings.json`, "테스트는 mock 으로"는 `CLAUDE.md` 에 해당한다.
+---
 
-**Q: `rules/` 폴더가 아니라 `.claude/` 에 넣으면 안 되나?**
-A: `.claude/` 는 Claude Code 하네스 설정(`settings.json`, `commands/`, `agents/`, `hooks/`)의 자리다. `@import` 로 읽히는 지침 문서는 성격이 다르므로 `rules/` 에 두는 것이 의미상 깔끔하다. 기술적으로는 `.claude/` 에 넣어도 동작한다.
+## 관련 문서
+
+- 설치/실행/스택 → `README.md`
+- Claude Code 로 코드 수정 시 규칙 → `CLAUDE.md` + `rules/`
+- 설계 스펙·구현 계획 → `docs/superpowers/`
