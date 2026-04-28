@@ -251,6 +251,8 @@ def parse_docx(
             field_kind, raw_xml_ref, preview_text = _emit_field_artifacts(
                 item, para_seq=seq, user_id=user_id, job_id=job_id
             )
+            # Block.field_kind 은 "unknown" 을 받지 않으므로 None 으로 정규화
+            block_field_kind = field_kind if field_kind != "unknown" else None
             pairs.append(
                 (
                     Block(
@@ -261,7 +263,7 @@ def parse_docx(
                         detected_by=detected_by,
                         alignment=_extract_alignment(item),
                         raw_xml_ref=raw_xml_ref,
-                        field_kind=field_kind,
+                        field_kind=block_field_kind,
                         preview_text=preview_text,
                     ),
                     idx,

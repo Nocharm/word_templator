@@ -6,6 +6,7 @@
 """
 
 import io
+import re
 import uuid
 
 from docx import Document
@@ -17,6 +18,7 @@ from app.domain.outline import Block, Outline
 from app.domain.section import SectionSpec
 from app.domain.style_spec import StyleSpec
 from app.renderer.apply_style import apply_paragraph_style
+from app.renderer.inject_caption_fields import build_caption_paragraph_xml, build_ref_run_xml
 from app.renderer.inject_numbering import renumber
 from app.renderer.reembed_raw import reembed_paragraph, reembed_table
 from app.storage.files import section_part_path
@@ -116,9 +118,56 @@ def _apply_preserved_headers_footers(
             pass
 
 
+_CAPTION_PREFIX_RE = re.compile(
+    r"^\s*(그림|표|Figure|Table)\s*(\d+)\s*([.:\]\-—]?)\s*(.*)$"
+)
+
+
 def _add_paragraph_block(doc, block: Block, spec: StyleSpec) -> None:
-    para = doc.add_paragraph(block.text or "")
+    """단락 블록 emit — caption_refs 가 있으면 REF 필드로 inline 치환."""
+    text = block.text or ""
+    if not block.caption_refs:
+        para = doc.add_paragraph(text)
+        apply_paragraph_style(para, block.level, spec, alignment_override=block.alignment)
+        return
+
+    para = doc.add_paragraph()
     apply_paragraph_style(para, block.level, spec, alignment_override=block.alignment)
+
+    cursor = 0
+    w_ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    for ref in sorted(block.caption_refs, key=lambda r: r.span[0]):
+        start, end = ref.span
+        if start < cursor:  # overlapping match — skip
+            continue
+        if start > cursor:
+            para.add_run(text[cursor:start])
+        if ref.target_block_id is None:
+            para.add_run(text[start:end])
+        else:
+            matched_text = text[start:end]
+            num_str = str(ref.detected_number)
+            # prefix_text: 숫자 앞 레이블 텍스트 (split 첫 조각)
+            prefix_text = (
+                matched_text.split(num_str)[0] if num_str in matched_text else matched_text
+            )
+            run_xml = build_ref_run_xml(
+                label_kind=ref.label_kind,
+                block_id=ref.target_block_id,
+                cached_number=ref.detected_number,
+                prefix_text=prefix_text,
+            )
+            wrapper = (
+                f'<root xmlns:w="{w_ns}">'.encode()
+                + run_xml
+                + b"</root>"
+            )
+            container = etree.fromstring(wrapper)
+            for child in list(container):
+                para._p.append(child)
+        cursor = end
+    if cursor < len(text):
+        para.add_run(text[cursor:])
 
 
 def _add_image_placeholder(doc, block: Block, spec: StyleSpec) -> None:
@@ -137,9 +186,30 @@ def _add_field_placeholder(doc, block: Block, spec: StyleSpec) -> None:
     apply_paragraph_style(para, 0, spec)
 
 
-def _add_caption_paragraph(doc, caption: str, spec: StyleSpec) -> None:
-    para = doc.add_paragraph(caption)
-    apply_paragraph_style(para, 0, spec)
+def _add_caption_with_seq(doc, caption: str, block_id: str, spec: StyleSpec) -> None:
+    """`그림 N. 제목` / `표 N. 제목` 패턴이면 SEQ 필드로, 아니면 평문 fallback.
+
+    python-docx 의 body.append() 는 <w:sectPr> 뒤에 삽입하므로 <w:sectPr> 앞에
+    삽입하기 위해 insert(-1, ...) 를 사용한다.
+    """
+    m = _CAPTION_PREFIX_RE.match(caption)
+    if not m:
+        para = doc.add_paragraph(caption)
+        apply_paragraph_style(para, 0, spec)
+        return
+    label, num_str, sep, tail = m.group(1), m.group(2), m.group(3) or ".", m.group(4)
+    seq_kind = "Figure" if label in ("그림", "Figure") else "Table"
+    xml = build_caption_paragraph_xml(
+        label=label,
+        seq_kind=seq_kind,
+        block_id=block_id,
+        cached_number=int(num_str),
+        tail_text=f"{sep} {tail}" if tail else "",
+    )
+    new_p = etree.fromstring(xml)
+    # <w:sectPr> 가 body 마지막 자식이므로 그 앞에 삽입 (insert 음수 인덱스 불가 → len-1)
+    body = doc.element.body
+    body.insert(len(body) - 1, new_p)
 
 
 def _emit_block(
@@ -158,14 +228,17 @@ def _emit_block(
         return
 
     if block.caption:
-        _add_caption_paragraph(doc, block.caption, spec)
+        _add_caption_with_seq(doc, block.caption, block.id, spec)
 
     if block.kind == "table":
         if block.raw_ref and user_id is not None and job_id is not None:
             reembed_table(doc, raw_ref=block.raw_ref, user_id=user_id, job_id=job_id, spec=spec)
         else:
-            para = doc.add_paragraph(block.markdown or "[표 원본 미보존]")
-            apply_paragraph_style(para, 0, spec)
+            # raw_ref 없을 때도 실제 Table 요소로 emit — 재파싱 시 Table 탐지 가능.
+            # markdown 첫 행에서 컬럼 수를 추정하고 단순 1행 테이블로 근사.
+            md = block.markdown or ""
+            cols = max(1, md.count("|") // 2) if "|" in md else 1
+            doc.add_table(rows=1, cols=cols)
         return
 
     if block.kind == "image":
