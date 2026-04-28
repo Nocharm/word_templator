@@ -280,6 +280,14 @@ const EN = {
   "auth.signUpHint": "Temporary form until OAuth sign-in is available.",
   "auth.creatingAccount": "Creating account...",
   "auth.alreadyAcct": "Already have an account?",
+
+  // Editor — heading level validation
+  "editor.headingSkipBlocked": "Cannot skip more than one heading level.",
+  "editor.headingSkipQuickFix": "Promote one level",
+
+  // Caption — reference / placeholder
+  "caption.placeholder.missing": "Add after download",
+  "caption.refMismatch": "Body reference does not match caption number.",
 } as const;
 
 export type MessageKey = keyof typeof EN;
@@ -543,9 +551,17 @@ const KO: Record<MessageKey, string> = {
   "auth.signUpHint": "OAuth 로그인 추가 전까지 임시로 사용합니다.",
   "auth.creatingAccount": "계정 생성 중...",
   "auth.alreadyAcct": "이미 계정이 있으신가요?",
+
+  // Editor — heading level validation
+  "editor.headingSkipBlocked": "직전 단계 보다 두 단계 깊게 갈 수 없습니다.",
+  "editor.headingSkipQuickFix": "한 단계 끌어올리기",
+
+  // Caption — reference / placeholder
+  "caption.placeholder.missing": "다운로드 후 추가",
+  "caption.refMismatch": "캡션 번호와 본문 참조가 일치하지 않습니다.",
 };
 
-const MESSAGES: Record<Language, Record<MessageKey, string>> = { en: EN, ko: KO };
+export const MESSAGES: Record<Language, Record<MessageKey, string>> = { en: EN, ko: KO };
 
 export function isLanguage(v: unknown): v is Language {
   return v === "en" || v === "ko";

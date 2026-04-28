@@ -1,5 +1,17 @@
-export type DetectedBy = "word_style" | "heuristic" | "user";
+export type DetectedBy =
+  | "word_style"
+  | "outline_level"
+  | "based_on"
+  | "heuristic"
+  | "user";
 export type BlockKind = "paragraph" | "table" | "image" | "field";
+
+export interface CaptionRef {
+  label_kind: "figure" | "table";
+  detected_number: number;
+  target_block_id: string | null;
+  span: [number, number];
+}
 
 export interface Block {
   id: string;
@@ -14,6 +26,9 @@ export interface Block {
   raw_xml_ref?: string | null;
   field_kind?: "toc" | "ref" | "pageref" | "unknown" | null;
   preview_text?: string | null;
+  subtype?: "body" | "note" | null;
+  warning?: "heading_skip" | null;
+  caption_refs?: CaptionRef[];
 }
 
 export type Orientation = "portrait" | "landscape";
