@@ -89,3 +89,49 @@ describe("n hotkey", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
+
+describe("Tab skip block", () => {
+  it("blocks Tab when target level would skip more than one (H1 → H3)", () => {
+    const outline: Outline = {
+      job_id: "j",
+      source_filename: "t",
+      blocks: [
+        { id: "b-1", kind: "paragraph", level: 1, text: "H1" },
+        { id: "b-2", kind: "paragraph", level: 2, text: "지금 H2 → Tab → H3" },
+      ],
+      sections: [],
+    };
+    const onChange = vi.fn();
+    wrap(outline, onChange);
+
+    fireEvent.click(screen.getByText(/지금 H2/));
+    const editorContainer = document.querySelector<HTMLDivElement>("[tabindex='0']");
+    if (!editorContainer) throw new Error("editor container not found");
+    fireEvent.keyDown(editorContainer, { key: "Tab" });
+
+    // prev_heading = H1 (1), target = H3 (3), diff = 2 > 1 → blocked
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("allows Tab when target level is prev_heading + 1", () => {
+    const outline: Outline = {
+      job_id: "j",
+      source_filename: "t",
+      blocks: [
+        { id: "b-1", kind: "paragraph", level: 1, text: "H1" },
+        { id: "b-2", kind: "paragraph", level: 1, text: "지금 H1 → Tab → H2" },
+      ],
+      sections: [],
+    };
+    const onChange = vi.fn();
+    wrap(outline, onChange);
+
+    fireEvent.click(screen.getByText(/지금 H1/));
+    const editorContainer = document.querySelector<HTMLDivElement>("[tabindex='0']");
+    if (!editorContainer) throw new Error("editor container not found");
+    fireEvent.keyDown(editorContainer, { key: "Tab" });
+
+    // prev_heading = H1, target = H2, diff = 1 → allowed
+    expect(onChange).toHaveBeenCalled();
+  });
+});

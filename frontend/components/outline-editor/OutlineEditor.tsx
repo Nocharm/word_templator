@@ -108,15 +108,42 @@ export function OutlineEditor({ initial, onChange }: Props) {
     if (e.key === "Tab") {
       e.preventDefault();
       const delta = e.shiftKey ? -1 : 1;
-      update({
-        ...outline,
-        blocks: outline.blocks.map((b) => {
-          if (!selected.has(b.id) || b.kind !== "paragraph") return b;
+
+      // Skip-check: Tab must not jump more than one heading level above prevHeading.
+      // Walk blocks in order, tracking the most recent heading level seen.
+      const newBlocks = [...outline.blocks];
+      let prevHeading = 0;
+      let blocked = false;
+
+      for (let i = 0; i < newBlocks.length; i++) {
+        const b = newBlocks[i];
+        if (b.kind !== "paragraph") continue;
+        if (selected.has(b.id)) {
           const newLevel = Math.max(0, Math.min(MAX_LEVEL, b.level + delta));
-          if (newLevel === b.level) return b;
-          return { ...b, level: newLevel, detected_by: "user" as const };
-        }),
-      });
+          // Only validate heading promotions (newLevel ≥ 1); demotions are always safe.
+          if (newLevel >= 1 && newLevel - prevHeading > 1) {
+            blocked = true;
+            break;
+          }
+          newBlocks[i] = { ...b, level: newLevel, detected_by: "user" as const };
+          if (newLevel >= 1) prevHeading = newLevel;
+        } else if (b.level >= 1) {
+          prevHeading = b.level;
+        }
+      }
+
+      if (blocked) {
+        // Pragmatic toast stub: use window.__toast if wired, else warn in console.
+        const w = window as { __toast?: (msg: string) => void };
+        if (w.__toast) {
+          w.__toast(t("editor.headingSkipBlocked"));
+        } else {
+          console.warn(t("editor.headingSkipBlocked"));
+        }
+        return;
+      }
+
+      update({ ...outline, blocks: newBlocks });
     }
   }
 
