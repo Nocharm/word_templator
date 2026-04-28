@@ -41,3 +41,42 @@ def test_seed_demo_accounts_skips_when_user_already_exists(db_session):
     seed_demo_accounts(db_session)
     admin = db_session.query(User).filter_by(email=DEMO_ADMIN_EMAIL).one()
     assert verify_password("custom_password", admin.password_hash)
+
+
+from pathlib import Path  # noqa: E402
+
+from app.db.models import Job  # noqa: E402
+from app.db.seed import DEMO_JOB_FILENAME, seed_demo_job  # noqa: E402
+
+
+def test_seed_demo_job_creates_job_for_user(db_session):
+    seed_demo_accounts(db_session)
+    user = db_session.query(User).filter_by(email=DEMO_USER_EMAIL).one()
+    seed_demo_job(db_session, user.id)
+    job = db_session.query(Job).filter_by(user_id=user.id).one()
+    assert job.original_filename == DEMO_JOB_FILENAME
+    assert job.status == "parsed"
+    assert isinstance(job.outline_json, dict)
+    assert "blocks" in job.outline_json
+    src = Path(job.source_path)
+    assert src.exists() and src.stat().st_size > 1000
+
+
+def test_seed_demo_job_is_idempotent(db_session):
+    seed_demo_accounts(db_session)
+    user = db_session.query(User).filter_by(email=DEMO_USER_EMAIL).one()
+    seed_demo_job(db_session, user.id)
+    seed_demo_job(db_session, user.id)
+    seed_demo_job(db_session, user.id)
+    assert db_session.query(Job).filter_by(user_id=user.id).count() == 1
+
+
+def test_seed_demo_job_outline_has_landscape_section(db_session):
+    seed_demo_accounts(db_session)
+    user = db_session.query(User).filter_by(email=DEMO_USER_EMAIL).one()
+    seed_demo_job(db_session, user.id)
+    job = db_session.query(Job).filter_by(user_id=user.id).one()
+    sections = job.outline_json.get("sections", [])
+    assert len(sections) >= 2
+    orientations = {s.get("orientation") for s in sections}
+    assert "landscape" in orientations
