@@ -1,12 +1,13 @@
 "use client";
 
 import clsx from "clsx";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useT } from "@/components/settings-provider";
+import { SectionDivider } from "@/components/outline-editor/SectionDivider";
 import type { TFunction } from "@/lib/i18n";
-import type { Block, Outline, PreviewResponse } from "@/lib/types";
+import type { Block, Outline, PreviewResponse, SectionSpec } from "@/lib/types";
 
 type PairKind = "unchanged" | "level_changed" | "numbered" | "field_preserved";
 
@@ -153,6 +154,66 @@ function rowBgClass(kind: PairKind): string {
   }
 }
 
+// 섹션이 2개 이상이면 각 섹션 시작 직전에 구분선 row 를 끼워 넣는다.
+function renderPairsWithSections(
+  pairs: Pair[],
+  sections: SectionSpec[] | undefined,
+  t: TFunction,
+) {
+  const showDividers = sections && sections.length > 1;
+  // pair.id (== block.id) 가 어느 섹션의 첫 블록인지 사전 계산.
+  const firstPairBySection = new Map<string, { section: SectionSpec; index: number }>();
+  if (showDividers) {
+    sections!.forEach((s, idx) => {
+      const firstId = s.block_ids.find((id) => pairs.some((p) => p.id === id));
+      if (firstId) firstPairBySection.set(firstId, { section: s, index: idx });
+    });
+  }
+
+  return pairs.map((p) => {
+    const sectionStart = firstPairBySection.get(p.id);
+    return (
+      <Fragment key={p.id}>
+        {sectionStart ? (
+          <div className="col-span-2 border-b border-border/60 px-3 py-1">
+            <SectionDivider
+              section={sectionStart.section}
+              index={sectionStart.index}
+              isFirst={sectionStart.index === 0}
+            />
+          </div>
+        ) : null}
+        <div
+          className={clsx(
+            "grid grid-cols-2 gap-2 border-b border-border/60 px-3 py-2",
+            rowBgClass(p.kind),
+          )}
+        >
+          <div className="border-r border-border/40 pr-3">
+            <BlockCell block={p.before} side="before" t={t} />
+          </div>
+          <div className="pl-1">
+            <BlockCell block={p.after} side="after" t={t} />
+            {p.reasons.length > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+                {p.reasons.map((r, i) => (
+                  <span
+                    key={i}
+                    className="rounded bg-bg/60 px-1.5 py-0.5 text-text-muted border border-border/40"
+                  >
+                    📌 {r.text}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </Fragment>
+    );
+  });
+}
+
+
 export default function PreviewPage() {
   const router = useRouter();
   const t = useT();
@@ -287,34 +348,7 @@ export default function PreviewPage() {
         {visiblePairs.length === 0 ? (
           <div className="px-4 py-12 text-center text-sm text-text-muted">{t("preview.noChanges")}</div>
         ) : (
-          visiblePairs.map((p) => (
-            <div
-              key={p.id}
-              className={clsx(
-                "grid grid-cols-2 gap-2 border-b border-border/60 px-3 py-2",
-                rowBgClass(p.kind),
-              )}
-            >
-              <div className="border-r border-border/40 pr-3">
-                <BlockCell block={p.before} side="before" t={t} />
-              </div>
-              <div className="pl-1">
-                <BlockCell block={p.after} side="after" t={t} />
-                {p.reasons.length > 0 ? (
-                  <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
-                    {p.reasons.map((r, i) => (
-                      <span
-                        key={i}
-                        className="rounded bg-bg/60 px-1.5 py-0.5 text-text-muted border border-border/40"
-                      >
-                        📌 {r.text}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ))
+          renderPairsWithSections(visiblePairs, data.after.sections, t)
         )}
       </div>
 

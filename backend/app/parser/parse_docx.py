@@ -22,6 +22,7 @@ from app.parser.extract_field import (
     paragraph_has_field,
 )
 from app.parser.extract_image import ImageBlob, iter_image_blobs
+from app.parser.extract_section import build_sections
 from app.parser.extract_table import clone_table_xml, table_to_markdown
 from app.storage.files import image_path, raw_ooxml_path
 
@@ -44,6 +45,21 @@ def _collapse_consecutive_empty(blocks: list[Block]) -> list[Block]:
         if empty and prev_empty:
             continue
         out.append(b)
+        prev_empty = empty
+    return out
+
+
+def _collapse_consecutive_empty_paired(
+    pairs: list[tuple[Block, int]],
+) -> list[tuple[Block, int]]:
+    """`_collapse_consecutive_empty` 와 동일한 규칙으로 (Block, body_seq) 쌍을 압축."""
+    out: list[tuple[Block, int]] = []
+    prev_empty = False
+    for b, seq in pairs:
+        empty = b.kind == "paragraph" and not (b.text or "").strip()
+        if empty and prev_empty:
+            continue
+        out.append((b, seq))
         prev_empty = empty
     return out
 
@@ -128,7 +144,7 @@ def parse_docx(
         elif is_caption(before_text):
             suppressed.add(idx - 1)
 
-    blocks: list[Block] = []
+    pairs: list[tuple[Block, int]] = []  # (block, body_child_idx)
     table_idx = 0
     image_idx = 0
     para_idx = 0
@@ -149,17 +165,20 @@ def parse_docx(
                     field_kind, raw_xml_ref, preview_text = _emit_field_artifacts(
                         item, para_seq=seq, user_id=user_id, job_id=job_id
                     )
-                    blocks.append(
-                        Block(
-                            id=_new_id(),
-                            kind="paragraph",
-                            level=level,
-                            text=item.text,
-                            detected_by=detected_by,
-                            alignment=_extract_alignment(item),
-                            raw_xml_ref=raw_xml_ref,
-                            field_kind=field_kind,
-                            preview_text=preview_text,
+                    pairs.append(
+                        (
+                            Block(
+                                id=_new_id(),
+                                kind="paragraph",
+                                level=level,
+                                text=item.text,
+                                detected_by=detected_by,
+                                alignment=_extract_alignment(item),
+                                raw_xml_ref=raw_xml_ref,
+                                field_kind=field_kind,
+                                preview_text=preview_text,
+                            ),
+                            idx,
                         )
                     )
                     continue
@@ -171,14 +190,17 @@ def parse_docx(
                         out = image_path(job_id, image_idx, blob.ext)
                         out.write_bytes(blob.data)
                         preview_url = f"/api/jobs/{job_id}/images/{image_idx}"
-                    blocks.append(
-                        Block(
-                            id=_new_id(),
-                            kind="image",
-                            level=0,
-                            caption=cap_for_this,
-                            raw_ref=raw_ref,
-                            preview_url=preview_url,
+                    pairs.append(
+                        (
+                            Block(
+                                id=_new_id(),
+                                kind="image",
+                                level=0,
+                                caption=cap_for_this,
+                                raw_ref=raw_ref,
+                                preview_url=preview_url,
+                            ),
+                            idx,
                         )
                     )
                     # 한 paragraph 안의 첫 이미지에만 caption 부여
@@ -192,17 +214,20 @@ def parse_docx(
             field_kind, raw_xml_ref, preview_text = _emit_field_artifacts(
                 item, para_seq=seq, user_id=user_id, job_id=job_id
             )
-            blocks.append(
-                Block(
-                    id=_new_id(),
-                    kind="paragraph",
-                    level=level,
-                    text=item.text,
-                    detected_by=detected_by,
-                    alignment=_extract_alignment(item),
-                    raw_xml_ref=raw_xml_ref,
-                    field_kind=field_kind,
-                    preview_text=preview_text,
+            pairs.append(
+                (
+                    Block(
+                        id=_new_id(),
+                        kind="paragraph",
+                        level=level,
+                        text=item.text,
+                        detected_by=detected_by,
+                        alignment=_extract_alignment(item),
+                        raw_xml_ref=raw_xml_ref,
+                        field_kind=field_kind,
+                        preview_text=preview_text,
+                    ),
+                    idx,
                 )
             )
             continue
@@ -214,17 +239,22 @@ def parse_docx(
                 xml = clone_table_xml(item)
                 raw_ref_t = f"table-{table_idx}"
                 raw_ooxml_path(user_id, job_id, raw_ref_t).write_bytes(xml)
-            blocks.append(
-                Block(
-                    id=_new_id(),
-                    kind="table",
-                    level=0,
-                    markdown=md,
-                    caption=caption_for.get(idx),
-                    raw_ref=raw_ref_t,
+            pairs.append(
+                (
+                    Block(
+                        id=_new_id(),
+                        kind="table",
+                        level=0,
+                        markdown=md,
+                        caption=caption_for.get(idx),
+                        raw_ref=raw_ref_t,
+                    ),
+                    idx,
                 )
             )
             table_idx += 1
 
-    blocks = _collapse_consecutive_empty(blocks)
-    return Outline(job_id="", source_filename=filename, blocks=blocks)
+    pairs = _collapse_consecutive_empty_paired(pairs)
+    blocks = [b for b, _ in pairs]
+    sections = build_sections(doc, pairs, user_id=user_id, job_id=job_id)
+    return Outline(job_id="", source_filename=filename, blocks=blocks, sections=sections)

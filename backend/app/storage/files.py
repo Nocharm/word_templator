@@ -40,3 +40,20 @@ def image_dir(job_id: uuid.UUID) -> Path:
 def image_path(job_id: uuid.UUID, idx: int, ext: str) -> Path:
     safe_ext = ext.lstrip(".").lower() or "bin"
     return image_dir(job_id) / f"image-{idx}.{safe_ext}"
+
+
+def section_part_path(
+    user_id: uuid.UUID,
+    job_id: uuid.UUID,
+    section_idx: int,
+    kind: str,
+    position: str,
+) -> Path:
+    """원본 .docx 의 머리말/꼬리말 XML 저장 경로.
+
+    kind: 'header' | 'footer'
+    position: 'default' | 'first' | 'even'
+    """
+    d = job_dir(user_id, job_id) / "sections"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"{kind}_{section_idx}_{position}.xml"
