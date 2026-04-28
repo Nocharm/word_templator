@@ -72,6 +72,8 @@ export function ParagraphBlock({
       ? (BODY_DECO[parentLevel] ?? "")
       : "";
 
+  const isNote = block.subtype === "note";
+
   function handleClick(e: React.MouseEvent) {
     onSelect(block.id, { shift: e.shiftKey, meta: e.metaKey || e.ctrlKey });
   }
@@ -87,6 +89,7 @@ export function ParagraphBlock({
         deco,
         "group flex items-start gap-2 cursor-pointer rounded-r-token px-3 py-1.5 outline-none transition select-none",
         isHeading ? "text-text" : "font-normal text-text",
+        isNote && "pl-6 italic border-l-2 border-warning/30",
         isSelected && "ring-2 ring-inset ring-primary",
         heuristic && !isSelected && "ring-1 ring-inset ring-warning/60",
       )}
