@@ -138,3 +138,17 @@ def test_cover_detection_misses_after_5_paragraphs():
     p = FakePCover(runs=[FakeRun(bold=True, font_size_pt=22)])
     # paragraph 6 -> outside cover window
     assert detect_level(p, paragraph_index=6) == (0, "heuristic")
+
+
+def test_title_style_maps_to_level_1():
+    p = FakeParagraph(text="표지 제목", style=FakeStyle(name="Title"))
+    level, by = detect_level(p, paragraph_index=0)
+    assert level == 1
+    assert by == "word_style"
+
+
+def test_subtitle_style_maps_to_level_2():
+    p = FakeParagraph(text="부제", style=FakeStyle(name="Subtitle"))
+    level, by = detect_level(p, paragraph_index=1)
+    assert level == 2
+    assert by == "word_style"

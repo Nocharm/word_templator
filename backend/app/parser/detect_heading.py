@@ -19,6 +19,8 @@ _WORD_HEADING = {
     "제목 4": 4,
     "Heading 5": 5,
     "제목 5": 5,
+    "Title": 1,
+    "Subtitle": 2,
 }
 
 _RE_H1_DECIMAL = re.compile(r"^\d+\.\s")
