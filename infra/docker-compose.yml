@@ -11,11 +11,15 @@ services:
     restart: unless-stopped
 
   frontend:
+    # env_file 미사용 — 백엔드 시크릿(JWT_SECRET 등) 이 프론트 컨테이너 env 로 새지 않게.
+    # 필요한 변수만 명시 주입하고, NEXT_PUBLIC_* 는 빌드 ARG 로 전달해 JS 번들에 인라인.
     build:
       context: ../frontend
-    env_file: ../.env
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
     environment:
       INTERNAL_API_BASE: http://backend:8000
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
     depends_on:
       - backend
     restart: unless-stopped

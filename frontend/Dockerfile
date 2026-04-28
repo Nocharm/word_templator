@@ -7,6 +7,11 @@ RUN --mount=type=cache,target=/root/.npm \
 
 FROM node:22-slim AS builder
 WORKDIR /app
+# NEXT_PUBLIC_* 는 빌드 시점에 JS 번들에 인라인되어야 하므로 ARG → ENV 로 받음.
+# docker-compose 에서 build.args 로 전달. 별도 호스트 배포 시 .env 의 NEXT_PUBLIC_API_BASE 를
+# 절대 URL (예: https://example.com/api) 로 설정.
+ARG NEXT_PUBLIC_API_BASE=/api
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

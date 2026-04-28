@@ -7,7 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # 다중 경로 — backend/ 에서 실행해도 루트 .env 를 찾고, Docker 컨테이너에서는
+    # env_file 주입 또는 OS env 만으로도 동작 (없으면 silently skip).
+    model_config = SettingsConfigDict(
+        env_file=("../.env", ".env"),
+        extra="ignore",
+    )
 
     database_url: str = Field(..., alias="DATABASE_URL")
     jwt_secret: str = Field(..., alias="JWT_SECRET")
